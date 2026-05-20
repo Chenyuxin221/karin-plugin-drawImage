@@ -15,6 +15,35 @@ export interface ApiResponse {
   text: string
 }
 
+export interface BinaryResponse {
+  /** HTTP 状态是否在 2xx 范围内 */
+  ok: boolean
+  /** HTTP 状态码 */
+  status: number
+  /** HTTP 状态文本 */
+  statusText: string
+  /** 响应 Content-Type */
+  contentType: string
+  /** 响应二进制内容 */
+  buffer: Buffer
+}
+
+export interface MultipartFileInput {
+  /** multipart 文件字段名 */
+  fieldName?: string
+  /** 上传文件名 */
+  fileName: string
+  /** 文件 MIME 类型 */
+  contentType: string
+  /** 文件内容 */
+  buffer: Buffer
+}
+
+export interface MultipartRequestOptions {
+  /** Bearer Token，会自动拼成 Authorization 头 */
+  bearerToken?: string
+}
+
 /**
  * 创建统一的请求超时错误。
  *
@@ -23,6 +52,19 @@ export interface ApiResponse {
  */
 function timeoutError (timeoutSeconds: number): Error {
   return new Error(`接口请求超时：${timeoutSeconds} 秒内没有返回结果，请稍后重试或调大 requestTimeoutSeconds`)
+}
+
+/**
+ * 判断 fetch / Web API 风格的超时或中止错误。
+ *
+ * @param error - 原始异常对象。
+ * @returns 是否为超时/中止错误。
+ */
+function isAbortLikeError (error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+
+  const name = String((error as { name?: unknown }).name ?? '')
+  return name === 'AbortError' || name === 'TimeoutError'
 }
 
 /**
@@ -65,6 +107,83 @@ function toText (data: unknown): string {
  */
 function getContentType (headers: Record<string, unknown>): string {
   return String(headers['content-type'] ?? headers['Content-Type'] ?? '')
+}
+
+/**
+ * 下载二进制文件。
+ *
+ * @param url - 文件地址。
+ * @param timeoutSeconds - 请求超时时间，单位秒。
+ * @returns 二进制响应结果。
+ */
+export async function readBinary (url: string, timeoutSeconds: number): Promise<BinaryResponse> {
+  try {
+    const response = await axios.get<ArrayBuffer>(url, {
+      responseType: 'arraybuffer',
+      timeout: timeoutSeconds * 1000,
+      validateStatus: () => true,
+    })
+
+    return {
+      ok: response.status >= 200 && response.status < 300,
+      status: response.status,
+      statusText: response.statusText,
+      contentType: getContentType(response.headers),
+      buffer: Buffer.from(response.data),
+    }
+  } catch (error) {
+    normalizeAxiosError(error, timeoutSeconds)
+  }
+}
+
+/**
+ * 发送 multipart/form-data 请求。
+ *
+ * 当前用于把输入图片上传到自定义图床，文件字段名默认使用 `file`。
+ *
+ * @param url - 请求地址。
+ * @param file - 要上传的文件。
+ * @param timeoutSeconds - 请求超时时间，单位秒。
+ * @returns 归一化后的接口响应。
+ */
+export async function postMultipart (
+  url: string,
+  file: MultipartFileInput,
+  timeoutSeconds: number,
+  options: MultipartRequestOptions = {},
+): Promise<ApiResponse> {
+  try {
+    const form = new FormData()
+    form.append(
+      file.fieldName ?? 'file',
+      new Blob([new Uint8Array(file.buffer)], { type: file.contentType || 'application/octet-stream' }),
+      file.fileName,
+    )
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json, text/plain, */*',
+        ...(options.bearerToken ? { Authorization: `Bearer ${options.bearerToken}` } : {}),
+      },
+      body: form,
+      signal: AbortSignal.timeout(timeoutSeconds * 1000),
+    })
+
+    return {
+      ok: response.ok,
+      status: response.status,
+      statusText: response.statusText,
+      contentType: response.headers.get('content-type') ?? '',
+      text: await response.text(),
+    }
+  } catch (error) {
+    if (isAbortLikeError(error)) {
+      throw timeoutError(timeoutSeconds)
+    }
+
+    throw error
+  }
 }
 
 /**

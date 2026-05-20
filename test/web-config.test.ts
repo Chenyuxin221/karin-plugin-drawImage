@@ -18,6 +18,9 @@ test('web config uses fixed draw fields and saves runtime yaml', async () => {
   assert.equal(baselineKeys[1], 'draw-active-profile')
   assert.ok(baselineKeys.includes('draw-title-global'))
   assert.ok(baselineKeys.includes('draw-global-api-key'))
+  assert.ok(baselineKeys.includes('draw-global-image-upload-mode'))
+  assert.ok(baselineKeys.includes('draw-global-image-upload-url'))
+  assert.ok(baselineKeys.includes('draw-global-image-upload-token'))
   assert.ok(baselineKeys.includes('draw-profile1-api-mode'))
   assert.ok(baselineKeys.includes('draw-profile1-api-key'))
   assert.ok(baselineKeys.includes('draw-profile1-image-detail'))
@@ -26,11 +29,15 @@ test('web config uses fixed draw fields and saves runtime yaml', async () => {
   assert.ok(baselineKeys.includes('draw-profile2-image-detail'))
   assert.ok(baselineKeys.includes('draw-profile2-size-custom'))
   assert.ok(baselineKeys.includes('draw-profile3-api-key'))
+  assert.ok(!baselineKeys.includes('draw-global-use-edit-route'))
   assert.ok(baselineKeys.includes('draw-global-task-lock-enabled'))
   assert.ok(!baselineKeys.includes('draw-global-cooldown-seconds'))
   assert.ok(baselineKeys.includes('draw-global-request-timeout-seconds'))
   assert.ok(baselineKeys.includes('draw-global-n'))
   assert.ok(!baselineKeys.includes('draw-profile1-task-lock-enabled'))
+  assert.ok(!baselineKeys.includes('draw-profile1-image-upload-mode'))
+  assert.ok(!baselineKeys.includes('draw-profile1-image-upload-url'))
+  assert.ok(!baselineKeys.includes('draw-profile1-image-upload-token'))
   assert.ok(!baselineKeys.includes('draw-profile1-cooldown-seconds'))
   assert.ok(!baselineKeys.includes('draw-profile1-request-timeout-seconds'))
   assert.ok(!baselineKeys.includes('draw-profile1-n'))
@@ -39,6 +46,9 @@ test('web config uses fixed draw fields and saves runtime yaml', async () => {
   const componentTypes = Object.fromEntries((refreshedComponents ?? []).map((item: any) => [item.key, item.componentType]))
   assert.equal(componentTypes['draw-active-profile'], 'radio-group')
   assert.equal(componentTypes['draw-profile1-api-mode'], 'radio-group')
+  assert.equal(componentTypes['draw-global-image-upload-mode'], 'radio-group')
+  assert.equal(componentTypes['draw-global-image-upload-url'], 'input')
+  assert.equal(componentTypes['draw-global-image-upload-token'], 'input')
   assert.equal(componentTypes['draw-profile1-image-detail'], 'radio-group')
   assert.equal(componentTypes['draw-profile1-moderation'], 'radio-group')
   assert.equal(componentTypes['draw-profile1-background'], 'radio-group')
@@ -46,7 +56,8 @@ test('web config uses fixed draw fields and saves runtime yaml', async () => {
   assert.equal(componentTypes['draw-profile1-quality'], 'radio-group')
   assert.equal(componentTypes['draw-profile1-size'], 'radio-group')
   assert.equal(componentTypes['draw-profile1-size-custom'], 'input')
-  assert.equal(componentTypes['draw-global-task-lock-enabled'], 'switch')
+  assert.equal(componentTypes['draw-profile1-use-edit-route'], 'radio-group')
+  assert.equal(componentTypes['draw-global-task-lock-enabled'], 'radio-group')
   assert.equal(componentTypes['draw-profile1-moderation-custom'], undefined)
   assert.equal(componentTypes['draw-profile1-background-custom'], undefined)
   assert.equal(componentTypes['draw-profile1-output-format-custom'], undefined)
@@ -72,6 +83,23 @@ test('web config uses fixed draw fields and saves runtime yaml', async () => {
   assert.equal(imageDetailField?.label, '图像细节')
   assert.deepEqual(imageDetailField?.radio?.map((item: any) => item.value), ['', 'auto', 'low', 'high', 'original'])
   assert.match(String(imageDetailField?.description), /responses/)
+
+  const imageUploadModeField = findComponent('draw-global-image-upload-mode')
+  const imageUploadUrlField = findComponent('draw-global-image-upload-url')
+  const imageUploadTokenField = findComponent('draw-global-image-upload-token')
+  assert.equal(imageUploadModeField?.label, '图片上传方式')
+  assert.deepEqual(imageUploadModeField?.radio?.map((item: any) => item.value), ['default', 'base64', 'custom'])
+  assert.match(String(imageUploadModeField?.radio?.[0]?.description), /QQ 自带图床/)
+  assert.match(String(imageUploadModeField?.radio?.[1]?.description), /base64/)
+  assert.match(String(imageUploadModeField?.radio?.[2]?.description), /自定义图床/)
+  assert.equal(imageUploadUrlField?.label, '自定义图床地址')
+  assert.match(String(imageUploadUrlField?.placeholder), /example\.com\/upload/)
+  assert.equal(imageUploadTokenField?.label, '图床上传 Token')
+  assert.match(String(imageUploadTokenField?.description), /Bearer Token/)
+  assert.match(String(imageUploadTokenField?.placeholder), /Bearer Token/)
+  assert.equal(findComponent('draw-profile1-image-upload-mode'), undefined)
+  assert.equal(findComponent('draw-profile1-image-upload-url'), undefined)
+  assert.equal(findComponent('draw-profile1-image-upload-token'), undefined)
 
   const moderationField = findComponent('draw-profile1-moderation')
   assert.equal(moderationField?.label, '审核级别')
@@ -122,8 +150,14 @@ test('web config uses fixed draw fields and saves runtime yaml', async () => {
   assert.match(String(findComponent('draw-profile1-base-url')?.className), /md:col-span-4/)
   assert.match(String(findComponent('draw-profile1-model')?.className), /md:col-span-6/)
   assert.match(String(findComponent('draw-profile1-output-format')?.className), /md:col-span-6/)
+  assert.equal(findComponent('draw-profile1-use-edit-route')?.label, '图生图使用 Edit 路由')
+  assert.deepEqual(findComponent('draw-profile1-use-edit-route')?.radio?.map((item: any) => item.value), ['true', 'false'])
+  assert.equal(findComponent('draw-profile1-use-edit-route')?.defaultValue, 'false')
+  assert.match(String(findComponent('draw-profile1-use-edit-route')?.description), /images\/edits/)
+  assert.equal(findComponent('draw-profile2-use-edit-route')?.label, '图生图使用 Edit 路由')
   assert.equal(findComponent('draw-global-task-lock-enabled')?.label, '绘图任务限制')
-  assert.equal(findComponent('draw-global-task-lock-enabled')?.defaultSelected, true)
+  assert.deepEqual(findComponent('draw-global-task-lock-enabled')?.radio?.map((item: any) => item.value), ['true', 'false'])
+  assert.equal(findComponent('draw-global-task-lock-enabled')?.defaultValue, 'true')
   assert.match(String(findComponent('draw-global-task-lock-enabled')?.description), /上一张完成/)
   assert.match(String(findComponent('draw-global-request-timeout-seconds')?.className), /md:col-span-6/)
   assert.match(String(findComponent('draw-global-n')?.className), /md:col-span-6/)
@@ -142,6 +176,9 @@ test('web config uses fixed draw fields and saves runtime yaml', async () => {
       'draw-global-endpoint': '/v1/images/generations',
       'draw-global-model': 'global-model',
       'draw-global-image-detail': 'high',
+      'draw-global-image-upload-mode': 'custom',
+      'draw-global-image-upload-url': 'https://upload.example.com/api/upload',
+      'draw-global-image-upload-token': 'upload-global-token',
       'draw-global-task-lock-enabled': 'true',
       'draw-global-request-timeout-seconds': '600',
       'draw-global-moderation': 'auto',
@@ -158,6 +195,7 @@ test('web config uses fixed draw fields and saves runtime yaml', async () => {
       'draw-profile1-endpoint': '/v1/images/generations',
       'draw-profile1-model': 'gpt-image-2',
       'draw-profile1-image-detail': 'high',
+      'draw-profile1-use-edit-route': 'true',
       'draw-profile1-moderation': 'low',
       'draw-profile1-background': 'auto',
       'draw-profile1-output-format': 'png',
@@ -197,6 +235,9 @@ test('web config uses fixed draw fields and saves runtime yaml', async () => {
     assert.match(next, /activeProfile: profile2/)
     assert.match(next, /global:/)
     assert.match(next, /apiKey: sk-global/)
+    assert.match(next, /imageUploadMode: custom/)
+    assert.match(next, /imageUploadUrl: https:\/\/upload\.example\.com\/api\/upload/)
+    assert.match(next, /imageUploadToken: upload-global-token/)
     assert.match(next, /profile1:/)
     assert.match(next, /apiKey: sk-one/)
     assert.match(next, /moderation: low/)
@@ -206,6 +247,12 @@ test('web config uses fixed draw fields and saves runtime yaml', async () => {
     assert.match(next, /apiMode: chatCompletions/)
     assert.match(next, /endpoint: ""/)
     assert.match(next, /imageDetail: original/)
+    assert.match(next, /profile1:[\s\S]*useEditRoute: ['"]true['"]|profile1:[\s\S]*useEditRoute: true/)
+    const globalBlock = next.match(/global:[\s\S]*?profiles:/)?.[0] ?? ''
+    assert.doesNotMatch(globalBlock, /useEditRoute:/)
+    assert.doesNotMatch(next, /profile1:[\s\S]*imageUploadMode:/)
+    assert.doesNotMatch(next, /profile1:[\s\S]*imageUploadUrl:/)
+    assert.doesNotMatch(next, /profile1:[\s\S]*imageUploadToken:/)
     assert.match(next, /taskLockEnabled: ['"]true['"]|taskLockEnabled: true/)
     assert.doesNotMatch(next, /cooldownSeconds:/)
     assert.match(next, /requestTimeoutSeconds: ['"]600['"]|requestTimeoutSeconds: 600/)
@@ -226,6 +273,14 @@ test('web config uses fixed draw fields and saves runtime yaml', async () => {
     })
     assert.equal(missingCustomEndpoint?.success, false)
     assert.match(String(missingCustomEndpoint?.message), /自定义请求路径/)
+
+    const missingUploadUrl = await webConfig.save?.({
+      ...baseSaveConfig(),
+      'draw-global-image-upload-mode': 'custom',
+      'draw-global-image-upload-url': '',
+    })
+    assert.equal(missingUploadUrl?.success, false)
+    assert.match(String(missingUploadUrl?.message), /自定义图床地址/)
   } finally {
     if (originalRuntime) {
       await fs.writeFile(dir.configFile, originalRuntime, 'utf8')
@@ -242,6 +297,9 @@ function baseSaveConfig (): Record<string, string> {
     'draw-global-endpoint': '/v1/images/generations',
     'draw-global-model': 'global-model',
     'draw-global-image-detail': 'high',
+    'draw-global-image-upload-mode': 'default',
+    'draw-global-image-upload-url': '',
+    'draw-global-image-upload-token': '',
     'draw-global-task-lock-enabled': 'true',
     'draw-global-request-timeout-seconds': '600',
     'draw-global-moderation': 'auto',

@@ -12,6 +12,7 @@ import {
   extractOutputImages,
   generateImages,
   parseDrawPrompt,
+  resolveRequestTarget,
   toDrawConfig,
 } from '../src/utils/draw'
 
@@ -81,6 +82,42 @@ test('buildImageRequestPayload omits disabled optional image params', () => {
   assert.deepEqual(payload, {
     model: 'gpt-image-2',
     prompt: 'hello',
+  })
+})
+
+test('resolveRequestTarget keeps generations route for text-to-image by default', () => {
+  const target = resolveRequestTarget(toDrawConfig({
+    apiMode: 'images',
+    useEditRoute: false,
+  }), [])
+
+  assert.deepEqual(target, {
+    endpoint: '/v1/images/generations',
+    stream: false,
+  })
+})
+
+test('resolveRequestTarget keeps generations route for text-to-image even when edit route is enabled', () => {
+  const target = resolveRequestTarget(toDrawConfig({
+    apiMode: 'images',
+    useEditRoute: true,
+  }), [])
+
+  assert.deepEqual(target, {
+    endpoint: '/v1/images/generations',
+    stream: false,
+  })
+})
+
+test('resolveRequestTarget switches to edits route for image-to-image when enabled', () => {
+  const target = resolveRequestTarget(toDrawConfig({
+    apiMode: 'images',
+    useEditRoute: true,
+  }), ['https://cdn.example.com/input.png'])
+
+  assert.deepEqual(target, {
+    endpoint: '/v1/images/edits',
+    stream: false,
   })
 })
 
@@ -425,6 +462,7 @@ test('toDrawConfig fills missing values from code defaults', () => {
   assert.equal(config.model, 'gpt-image-2')
   assert.equal(config.apiMode, 'images')
   assert.equal(config.imageDetail, 'high')
+  assert.equal(config.useEditRoute, false)
   assert.equal(config.taskLockEnabled, true)
   assert.equal(config.cooldownSeconds, 180)
   assert.equal(config.requestTimeoutSeconds, 600)

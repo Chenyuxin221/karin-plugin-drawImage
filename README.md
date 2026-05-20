@@ -12,6 +12,7 @@ Karin 的 `#draw` AI 绘图插件，支持文生图和图生图，适配 OpenAI 
 - 子配置留空时继承全局配置
 - 同一时间只执行一个绘图任务，上一张完成后才能继续下一张
 - 支持流式聚合 Chat Completions / Responses 返回结果
+- 支持三种图生图输入图片处理方式：默认直传、base64、自定义图床上传
 
 ## 安装
 
@@ -93,6 +94,9 @@ draw:
     endpoint: /v1/images/generations
     model: gpt-image-2
     imageDetail: high
+    imageUploadMode: default
+    imageUploadUrl: ''
+    imageUploadToken: ''
     taskLockEnabled: true
     requestTimeoutSeconds: 600
     moderation: auto
@@ -110,6 +114,7 @@ draw:
       endpoint: ''
       model: ''
       imageDetail: ''
+      useEditRoute: false
       moderation: ''
       background: ''
       outputFormat: ''
@@ -132,6 +137,9 @@ draw:
 | `endpoint` | 自定义请求路径，仅 `custom` 模式使用 | `/v1/images/generations` |
 | `model` | 使用的模型名称 | `gpt-image-2` |
 | `imageDetail` | Chat Completions / Responses 图像细节 | `high` |
+| `imageUploadMode` | 图生图输入图片处理方式：`default`、`base64`、`custom` | `default` |
+| `imageUploadUrl` | 自定义图床上传接口地址，仅 `custom` 模式使用 | 空 |
+| `imageUploadToken` | 自定义图床 Bearer Token，仅 `custom` 模式使用 | 空 |
 | `taskLockEnabled` | 绘图任务限制，开启后上一张完成前不接受下一张 | `true` |
 | `requestTimeoutSeconds` | 上游请求超时时间，单位秒 | `600` |
 | `moderation` | 审核级别 | `auto` |
@@ -144,9 +152,42 @@ draw:
 说明：
 
 - `taskLockEnabled`、`requestTimeoutSeconds`、`n` 只在全局配置中设置
-- 配置一、二、三默认继承这些全局运行参数
+- `imageUploadMode`、`imageUploadUrl`、`imageUploadToken` 只在全局配置中设置
+- `useEditRoute` 在各配置档里单独设置，不继承全局
+- `useEditRoute` 默认关闭；仅当当前配置档 `apiMode=images` 且本次请求带输入图片时，才会切到 `/v1/images/edits`
 - `taskLockEnabled` 默认开启；关闭后不限制并发绘图请求
 - `size`、`quality`、`outputFormat`、`moderation`、`background` 可以在面板里选择“关闭”，关闭后请求里不会发送该字段
+
+图片上传模式说明：
+
+- `default`：直接使用 QQ 自带图床或原始图片地址
+- `base64`：将输入图片转成 `data:image/...;base64,...` 后发给上游
+- `custom`：先用 `multipart/form-data` 上传到你自己的图床，再把返回图片 URL 发给上游
+
+自定义图床上传约定：
+
+- 请求方法：`POST`
+- 请求体：`multipart/form-data`
+- 文件字段名：`file`
+- 如果填写了 `imageUploadToken`，插件会自动带上：
+
+```http
+Authorization: Bearer <imageUploadToken>
+```
+
+图床返回值兼容下面两类：
+
+1. 直接返回纯文本图片 URL
+2. 返回 JSON，插件会递归提取第一个 `http/https` 图片链接
+
+例如下面这个接口就是兼容的：
+
+```bash
+curl 'https://oss.senapi.fun/api/v1/upload' \
+  -H 'Authorization: Bearer <token>' \
+  -H 'Accept: application/json' \
+  -F 'file=@/path/to/image.png'
+```
 
 尺寸预设：
 
@@ -171,7 +212,16 @@ Web 面板仍保留 `size` 自定义输入，适合上游支持额外分辨率�
 /v1/images/generations
 ```
 
-按 Images API 风格发送请求，适合常规文生图，也可以用于部分兼容图生图接口。
+按 Images API 风格发送请求，默认走：
+
+- 文生图：`/v1/images/generations`
+- 图生图：`/v1/images/generations`
+
+如果开启 `useEditRoute`，则仅图生图会切到：
+
+```text
+/v1/images/edits
+```
 
 ### 2. chatCompletions
 
@@ -220,6 +270,7 @@ Web 配置面板支持：
 - 配置一/二/三单独覆盖
 - 单选项切换
 - `size` 自定义输入
+- 图床上传 Token 隐藏输入
 
 面板元信息里已经补充：
 
@@ -310,6 +361,32 @@ Web 配置面板支持：
 - 上游是否真的兼容 `image_url` 格式
 - 当前图片链接是否可被上游访问
 - 上游是否更偏好流式返回
+
+### 7. 自定义图床上传失败
+
+如果你开启了 `imageUploadMode=custom`，优先检查：
+
+- `imageUploadUrl` 是否是真正的 API 上传地址，而不是网页后台地址
+- 图床是否要求 `Bearer Token`
+- `imageUploadToken` 是否填写正确
+- 图床接口是否接受 `multipart/form-data`
+- 图床接口的文件字段名是否为 `file`
+
+插件当前发出的上传请求等价于：
+
+```bash
+curl '你的图床上传地址' \
+  -H 'Authorization: Bearer <imageUploadToken>' \
+  -F 'file=@/path/to/input.png'
+```
+
+如果浏览器网页上传能成功、插件失败，通常是因为你用的是网页接口而不是 API 接口。网页接口通常依赖：
+
+- 登录态 Cookie
+- CSRF Token
+- Referer / X-Requested-With
+
+这类地址不适合直接填到插件里。
 
 ## 开发
 

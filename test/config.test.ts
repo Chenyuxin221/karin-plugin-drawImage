@@ -25,6 +25,10 @@ test('config helpers use code defaults and save runtime yaml without example syn
     assert.equal(config.name, '配置一')
     assert.equal(config.apiMode, 'images')
     assert.equal(config.imageDetail, 'high')
+    assert.equal(config.imageUploadMode, 'default')
+    assert.equal(config.imageUploadUrl, '')
+    assert.equal(config.imageUploadToken, '')
+    assert.equal(config.useEditRoute, false)
     assert.equal(config.taskLockEnabled, true)
     assert.equal(config.requestTimeoutSeconds, 600)
     assert.equal(config.moderation, 'auto')
@@ -46,6 +50,9 @@ test('config helpers use code defaults and save runtime yaml without example syn
       '    baseUrl: https://global.example.com',
       '    apiKey: sk-global',
       '    model: global-model',
+      '    imageUploadMode: base64',
+      '    imageUploadUrl: https://upload.example.com/api/upload',
+      '    imageUploadToken: upload-global-token',
       '    taskLockEnabled: false',
       '    requestTimeoutSeconds: 1200',
       '  profiles:',
@@ -62,6 +69,7 @@ test('config helpers use code defaults and save runtime yaml without example syn
       '      apiMode: responses',
       '      model: gpt-5.4',
       '      imageDetail: original',
+      '      useEditRoute: true',
       '',
     ].join('\n'), 'utf8')
 
@@ -73,6 +81,13 @@ test('config helpers use code defaults and save runtime yaml without example syn
     assert.equal(settings.profiles.profile1.apiKey, 'sk-one')
     assert.equal(settings.profiles.profile2.apiKey, 'sk-global')
     assert.equal(settings.profiles.profile2.baseUrl, 'https://global.example.com')
+    assert.equal(settings.global.imageUploadMode, 'base64')
+    assert.equal(settings.global.imageUploadUrl, 'https://upload.example.com/api/upload')
+    assert.equal(settings.global.imageUploadToken, 'upload-global-token')
+    assert.equal(settings.profiles.profile2.imageUploadMode, 'base64')
+    assert.equal(settings.profiles.profile2.imageUploadToken, 'upload-global-token')
+    assert.equal(settings.profiles.profile2.useEditRoute, true)
+    assert.equal(settings.profiles.profile3.useEditRoute, false)
     assert.equal(settings.profiles.profile2.taskLockEnabled, false)
     assert.equal(settings.profiles.profile2.requestTimeoutSeconds, 1200)
     assert.equal(settings.profiles.profile3.name, '配置三')
@@ -94,6 +109,10 @@ test('config helpers use code defaults and save runtime yaml without example syn
       '  apiKey: sk-runtime',
       '  endpoint: /v1/images/generations',
       '  model: custom-model',
+      '  imageUploadMode: custom',
+      '  imageUploadUrl: https://upload.example.com/api/upload',
+      '  imageUploadToken: upload-runtime-token',
+      '  useEditRoute: true',
       '  taskLockEnabled: false',
       '  requestTimeoutSeconds: 900',
       '  moderation: low',
@@ -111,6 +130,10 @@ test('config helpers use code defaults and save runtime yaml without example syn
     assert.equal(config.apiKey, 'sk-runtime')
     assert.equal(config.model, 'custom-model')
     assert.equal(config.baseUrl, 'https://runtime.example.com')
+    assert.equal(config.imageUploadMode, 'custom')
+    assert.equal(config.imageUploadUrl, 'https://upload.example.com/api/upload')
+    assert.equal(config.imageUploadToken, 'upload-runtime-token')
+    assert.equal(config.useEditRoute, true)
     assert.equal(config.taskLockEnabled, false)
     assert.equal(config.requestTimeoutSeconds, 900)
     assert.equal(config.moderation, 'low')
@@ -139,6 +162,8 @@ test('config helpers use code defaults and save runtime yaml without example syn
       endpoint: 'v1/images/generations',
       model: 'gpt-image-2',
       imageDetail: 'low',
+      imageUploadToken: 'upload-save-token',
+      useEditRoute: 'true',
       taskLockEnabled: 'false',
       requestTimeoutSeconds: '900',
       moderation: 'low',
@@ -155,6 +180,7 @@ test('config helpers use code defaults and save runtime yaml without example syn
     assert.equal(saved.endpoint, '/v1/chat/completions')
     assert.equal(saved.apiMode, 'chatCompletions')
     assert.equal(saved.imageDetail, 'low')
+    assert.equal(saved.useEditRoute, true)
     assert.equal(saved.taskLockEnabled, false)
     assert.equal(saved.requestTimeoutSeconds, 900)
     assert.equal(saved.moderation, 'low')
@@ -170,6 +196,8 @@ test('config helpers use code defaults and save runtime yaml without example syn
     assert.match(content, /profile1:/)
     assert.match(content, /apiMode: chatCompletions/)
     assert.match(content, /imageDetail: low/)
+    assert.match(content, /imageUploadToken: upload-save-token/)
+    assert.match(content, /useEditRoute: ['"]true['"]|useEditRoute: true/)
     assert.match(content, /taskLockEnabled: ['"]false['"]|taskLockEnabled: false/)
     assert.match(content, /n: ['"]3['"]|n: 3/)
     assert.match(content, /size: __disabled__/)

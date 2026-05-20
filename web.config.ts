@@ -10,8 +10,15 @@ import {
 import { DRAW_SIZE_PRESETS, DISABLED_DRAW_OPTION_VALUE, type DrawConfigSource } from './src/utils/draw'
 
 const radio = components.radio
-const switchComponent = components.switch
-const PROFILE_HIDDEN_FIELD_KEYS = new Set(['taskLockEnabled', 'cooldownSeconds', 'requestTimeoutSeconds', 'n'])
+const PROFILE_HIDDEN_FIELD_KEYS = new Set([
+  'imageUploadMode',
+  'imageUploadUrl',
+  'imageUploadToken',
+  'taskLockEnabled',
+  'cooldownSeconds',
+  'requestTimeoutSeconds',
+  'n',
+])
 
 type RadioOption = {
   value: string
@@ -62,6 +69,15 @@ const radioFieldOptions: Partial<Record<string, RadioOption[]>> = {
     { value: 'high', label: '高', description: '高精度图像理解，推荐图生图使用' },
     { value: 'original', label: '原始', description: '保留原始细节，适合密集或空间敏感图片' },
   ],
+  imageUploadMode: [
+    { value: 'default', label: '默认', description: '直接使用 QQ 自带图床或原始图片地址' },
+    { value: 'base64', label: 'base64', description: '发送前转成 data:image/base64' },
+    { value: 'custom', label: '上传图床', description: '先上传到自定义图床，再把返回地址发给上游' },
+  ],
+  booleanSwitch: [
+    { value: 'true', label: '开启' },
+    { value: 'false', label: '关闭' },
+  ],
   moderation: [
     DISABLED_OPTION,
     { value: 'auto', label: '自动' },
@@ -102,6 +118,18 @@ const radioFieldOptions: Partial<Record<string, RadioOption[]>> = {
  */
 function customFieldId (key: string, profileId?: string): string {
   return `${fieldId(key, profileId)}-custom`
+}
+
+/**
+ * 判断当前配置作用域是否使用 images 路由。
+ *
+ * @param config - 当前作用域配置。
+ * @returns 是否为 images 模式。
+ */
+function usesImagesRoute (config: Record<string, unknown>, resolvedConfig: Record<string, unknown> = config): boolean {
+  const rawMode = String(config.apiMode ?? '').trim()
+  const effectiveMode = rawMode || String(resolvedConfig.apiMode ?? '').trim()
+  return effectiveMode === 'images'
 }
 
 /**
@@ -194,6 +222,10 @@ const fieldDescriptions: Partial<Record<string, string>> = {
   endpoint: '仅 custom 模式使用；images/chatCompletions/responses 会自动使用固定路由',
   model: '当前配置档使用的模型名称；留空时继承全局配置',
   imageDetail: '仅 chatCompletions/responses 带图请求使用',
+  imageUploadMode: '图生图输入图片的发送方式；默认直接用 QQ 图床，base64 会转 data URL，上传图床会先上传到自定义地址',
+  imageUploadUrl: '仅“上传图床”模式生效；使用 multipart/form-data 上传，文件字段名固定为 file',
+  imageUploadToken: '仅“上传图床”模式生效；如图床 API 需要鉴权，可填写 Bearer Token',
+  useEditRoute: '仅 images 模式生效；开启后带图请求会走 /v1/images/edits，纯文生图仍走 /v1/images/generations',
   taskLockEnabled: '开启后同一时间只执行一个绘图任务，上一张完成后才能继续下一张',
   size: '图片尺寸；选自定义时填写下方自定义尺寸',
   quality: '生成质量，具体可用值取决于上游模型',
@@ -226,6 +258,10 @@ function getPlaceholder (key: string, allowInherit = false): string | undefined 
       return '/v1/custom/path'
     case 'model':
       return 'gpt-image-2'
+    case 'imageUploadUrl':
+      return 'https://example.com/upload'
+    case 'imageUploadToken':
+      return 'Bearer Token'
     case 'size':
       return '1024x1024'
     default:
@@ -270,6 +306,10 @@ const fieldLayouts: Partial<Record<string, string>> = {
   endpoint: THIRD_WIDTH_CLASS,
   model: HALF_WIDTH_CLASS,
   imageDetail: HALF_WIDTH_CLASS,
+  imageUploadMode: HALF_WIDTH_CLASS,
+  imageUploadUrl: HALF_WIDTH_CLASS,
+  imageUploadToken: HALF_WIDTH_CLASS,
+  useEditRoute: HALF_WIDTH_CLASS,
   size: FULL_WIDTH_CLASS,
   quality: HALF_WIDTH_CLASS,
   outputFormat: HALF_WIDTH_CLASS,
@@ -329,16 +369,47 @@ const componentFactories: Record<string, ComponentFactory> = {
   imageDetail: (id, value) => [
     createRadioGroup(id, '图像细节', radioFieldOptions.imageDetail ?? [], value, false, fieldLayouts.imageDetail),
   ],
-  taskLockEnabled: (id, value) => [switchComponent.options(id, {
+  imageUploadMode: (id, value) => [
+    createRadioGroup(id, '图片上传方式', radioFieldOptions.imageUploadMode ?? [], value, false, fieldLayouts.imageUploadMode),
+  ],
+  imageUploadUrl: (id, value) => [input.url(id, {
     ...withInputStyle({
-      label: '绘图任务限制',
-      description: getDescription('taskLockEnabled'),
-    }, fieldLayouts.taskLockEnabled),
-    startText: '开启',
-    endText: '关闭',
-    isSelected: value !== false && String(value ?? '').trim() !== 'false',
-    defaultSelected: value !== false && String(value ?? '').trim() !== 'false',
+      label: '自定义图床地址',
+      description: getDescription('imageUploadUrl'),
+      placeholder: getPlaceholder('imageUploadUrl'),
+    }, fieldLayouts.imageUploadUrl),
+    isRequired: false,
+    defaultValue: String(value ?? ''),
   })],
+  imageUploadToken: (id, value) => [input.password(id, {
+    ...withInputStyle({
+      label: '图床上传 Token',
+      description: getDescription('imageUploadToken'),
+      placeholder: getPlaceholder('imageUploadToken'),
+    }, fieldLayouts.imageUploadToken),
+    isRequired: false,
+    defaultValue: String(value ?? ''),
+  })],
+  useEditRoute: (id, value) => [
+    createRadioGroup(
+      id,
+      '图生图使用 Edit 路由',
+      radioFieldOptions.booleanSwitch ?? [],
+      value === true || String(value ?? '').trim() === 'true' ? 'true' : 'false',
+      false,
+      fieldLayouts.useEditRoute,
+    ),
+  ],
+  taskLockEnabled: (id, value) => [
+    createRadioGroup(
+      id,
+      '绘图任务限制',
+      radioFieldOptions.booleanSwitch ?? [],
+      value !== false && String(value ?? '').trim() !== 'false' ? 'true' : 'false',
+      false,
+      fieldLayouts.taskLockEnabled,
+    ),
+  ],
   background: (id, value) => [
     createRadioGroup(id, '背景', radioFieldOptions.background ?? [], value, false, fieldLayouts.background),
   ],
@@ -369,7 +440,7 @@ const componentGroups = [
   {
     key: 'connection',
     title: '基础连接',
-    fields: ['name', 'apiMode', 'baseUrl', 'apiKey', 'endpoint'],
+    fields: ['name', 'apiMode', 'baseUrl', 'apiKey', 'endpoint', 'imageUploadMode', 'imageUploadUrl', 'imageUploadToken'],
   },
   {
     key: 'generation',
@@ -379,7 +450,7 @@ const componentGroups = [
   {
     key: 'runtime',
     title: '高级选项',
-    fields: ['moderation', 'background', 'taskLockEnabled', 'n', 'requestTimeoutSeconds'],
+    fields: ['moderation', 'background', 'useEditRoute', 'taskLockEnabled', 'n', 'requestTimeoutSeconds'],
   },
 ] as const
 
@@ -392,9 +463,19 @@ const componentGroups = [
  * @param allowInherit - 是否允许留空继承全局配置。
  * @returns Karin 组件配置列表。
  */
-function createFieldComponent (key: string, config: Record<string, unknown>, profileId?: string, allowInherit = false) {
+function createFieldComponent (
+  key: string,
+  config: Record<string, unknown>,
+  profileId?: string,
+  allowInherit = false,
+  resolvedConfig: Record<string, unknown> = config,
+) {
   const id = fieldId(key, profileId)
   const value = config[key]
+
+  if (key === 'useEditRoute' && !usesImagesRoute(config, resolvedConfig)) {
+    return []
+  }
 
   if (allowInherit && radioFieldOptions[key]) {
     return addDescriptionToComponents([
@@ -529,6 +610,13 @@ function validateConditionalRequiredFields (
     }
   }
 
+  if (config[fieldId('imageUploadMode', profileId)] === 'custom' && isBlankFormValue(config[fieldId('imageUploadUrl', profileId)])) {
+    return {
+      success: false,
+      message: `${label} 已选择上传图床，请填写自定义图床地址`,
+    }
+  }
+
   return undefined
 }
 
@@ -575,6 +663,7 @@ export default defineConfig({
       const children = group.fields
         .filter((key) => key !== 'name')
         .filter((key) => fieldSet.has(key))
+        .filter((key) => key !== 'useEditRoute')
         .flatMap((key) => createFieldComponent(key, settings.global as unknown as Record<string, unknown>, 'global'))
 
       if (children.length === 0) return
@@ -601,7 +690,7 @@ export default defineConfig({
           .filter((key) => fieldSet.has(key))
           .flatMap((key) => {
             usedFields.add(key)
-            return createFieldComponent(key, rawProfile, profileId, key !== 'name')
+            return createFieldComponent(key, rawProfile, profileId, key !== 'name', profile as unknown as Record<string, unknown>)
           })
 
         if (children.length === 0) return
@@ -617,7 +706,7 @@ export default defineConfig({
       fieldKeys
         .filter((key) => !PROFILE_HIDDEN_FIELD_KEYS.has(key))
         .filter((key) => !usedFields.has(key))
-        .flatMap((key) => createFieldComponent(key, rawProfile, profileId, key !== 'name'))
+        .flatMap((key) => createFieldComponent(key, rawProfile, profileId, key !== 'name', profile as unknown as Record<string, unknown>))
         .forEach((component) => groupedItems.push(component))
     })
 
@@ -656,6 +745,12 @@ export default defineConfig({
               return [key, rawProfile[key]]
             }
 
+            if (key === 'useEditRoute') {
+              const rawMode = String(config[fieldId('apiMode', profileId)] ?? '').trim()
+              const effectiveMode = rawMode || String(config[fieldId('apiMode', 'global')] ?? '').trim()
+              return [key, effectiveMode === 'images' ? config[fieldId(key, profileId)] : rawProfile[key]]
+            }
+
             const value = config[fieldId(key, profileId)]
             if (value === CUSTOM_OPTION_VALUE) {
               return [key, config[customFieldId(key, profileId)]]
@@ -672,6 +767,7 @@ export default defineConfig({
       getDrawTemplateFieldKeys()
         .filter((key) => key !== 'name')
         .filter((key) => key !== 'cooldownSeconds')
+        .filter((key) => key !== 'useEditRoute')
         .map((key) => {
           const value = config[fieldId(key, 'global')]
           if (value === CUSTOM_OPTION_VALUE) {

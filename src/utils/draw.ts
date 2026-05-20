@@ -1,14 +1,11 @@
-import fs from 'node:fs/promises'
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { logger } from 'node-karin'
 
 import { post, postWithStream, type ApiResponse } from './http'
+import { resolveApiImageInputs } from './image'
 
-const HTTP_URL_REG = /^https?:\/\//i
-const DATA_URL_REG = /^data:image\//i
 const BASE64_PREFIX = 'base64://'
 const IMAGE_GENERATIONS_ENDPOINT = '/v1/images/generations'
+const IMAGE_EDITS_ENDPOINT = '/v1/images/edits'
 const CHAT_COMPLETIONS_ENDPOINT = '/v1/chat/completions'
 const RESPONSES_ENDPOINT = '/v1/responses'
 const MARKDOWN_IMAGE_URL_REG = /!\[[^\]]*]\((https?:\/\/[^)\s]+|data:image\/[^)\s]+|base64:\/\/[^)\s]+)\)/gi
@@ -23,6 +20,8 @@ export type DrawApiMode = typeof DRAW_API_MODES[number]
 export const IMAGE_DETAIL_OPTIONS = ['auto', 'low', 'high', 'original'] as const
 export type ImageDetail = typeof IMAGE_DETAIL_OPTIONS[number]
 export const DISABLED_DRAW_OPTION_VALUE = '__disabled__'
+export const IMAGE_UPLOAD_MODES = ['default', 'base64', 'custom'] as const
+export type ImageUploadMode = typeof IMAGE_UPLOAD_MODES[number]
 
 export interface DrawSizePreset {
   /** 实际发送给上游的尺寸值 */
@@ -59,6 +58,10 @@ export interface DrawConfigSource {
   endpoint?: unknown
   model?: unknown
   imageDetail?: unknown
+  imageUploadMode?: unknown
+  imageUploadUrl?: unknown
+  imageUploadToken?: unknown
+  useEditRoute?: unknown
   taskLockEnabled?: unknown
   cooldownSeconds?: unknown
   requestTimeoutSeconds?: unknown
@@ -78,6 +81,10 @@ export interface DrawConfig {
   endpoint: string
   model: string
   imageDetail: ImageDetail
+  imageUploadMode: ImageUploadMode
+  imageUploadUrl: string
+  imageUploadToken: string
+  useEditRoute: boolean
   taskLockEnabled: boolean
   cooldownSeconds: number
   requestTimeoutSeconds: number
@@ -89,6 +96,13 @@ export interface DrawConfig {
   n?: number
 }
 
+interface RequestTarget {
+  /** 最终请求路由 */
+  endpoint: string
+  /** 本次请求是否使用流式接口 */
+  stream: boolean
+}
+
 export const DRAW_CONFIG_KEYS = [
   'name',
   'apiMode',
@@ -97,6 +111,10 @@ export const DRAW_CONFIG_KEYS = [
   'endpoint',
   'model',
   'imageDetail',
+  'imageUploadMode',
+  'imageUploadUrl',
+  'imageUploadToken',
+  'useEditRoute',
   'taskLockEnabled',
   'cooldownSeconds',
   'requestTimeoutSeconds',
@@ -108,7 +126,7 @@ export const DRAW_CONFIG_KEYS = [
   'n',
 ] as const
 
-export const DEFAULT_DRAW_CONFIG: Readonly<Required<Pick<DrawConfig, 'name' | 'apiMode' | 'apiKey' | 'baseUrl' | 'endpoint' | 'model' | 'imageDetail' | 'taskLockEnabled' | 'cooldownSeconds' | 'requestTimeoutSeconds'>> & {
+export const DEFAULT_DRAW_CONFIG: Readonly<Required<Pick<DrawConfig, 'name' | 'apiMode' | 'apiKey' | 'baseUrl' | 'endpoint' | 'model' | 'imageDetail' | 'imageUploadMode' | 'imageUploadUrl' | 'imageUploadToken' | 'useEditRoute' | 'taskLockEnabled' | 'cooldownSeconds' | 'requestTimeoutSeconds'>> & {
   moderation: string
   background: string
   outputFormat: string
@@ -123,6 +141,10 @@ export const DEFAULT_DRAW_CONFIG: Readonly<Required<Pick<DrawConfig, 'name' | 'a
   endpoint: IMAGE_GENERATIONS_ENDPOINT,
   model: 'gpt-image-2',
   imageDetail: 'high',
+  imageUploadMode: 'default',
+  imageUploadUrl: '',
+  imageUploadToken: '',
+  useEditRoute: false,
   taskLockEnabled: true,
   cooldownSeconds: 180,
   requestTimeoutSeconds: 600,
@@ -228,6 +250,10 @@ export function toDrawConfig (source: DrawConfigSource): DrawConfig {
     endpoint: normalizeEndpoint(endpointOrDefault(source, apiMode)),
     model: stringOrDefault(source.model, DEFAULT_DRAW_CONFIG.model),
     imageDetail: enumOrDefault(source.imageDetail, IMAGE_DETAIL_OPTIONS, DEFAULT_DRAW_CONFIG.imageDetail),
+    imageUploadMode: enumOrDefault(source.imageUploadMode, IMAGE_UPLOAD_MODES, DEFAULT_DRAW_CONFIG.imageUploadMode),
+    imageUploadUrl: stringOrDefault(source.imageUploadUrl, DEFAULT_DRAW_CONFIG.imageUploadUrl),
+    imageUploadToken: stringOrDefault(source.imageUploadToken, DEFAULT_DRAW_CONFIG.imageUploadToken),
+    useEditRoute: booleanOrDefault(source.useEditRoute, DEFAULT_DRAW_CONFIG.useEditRoute),
     taskLockEnabled: booleanOrDefault(source.taskLockEnabled, DEFAULT_DRAW_CONFIG.taskLockEnabled),
     cooldownSeconds: toPositiveInteger(source.cooldownSeconds, DEFAULT_DRAW_CONFIG.cooldownSeconds),
     requestTimeoutSeconds: toPositiveInteger(source.requestTimeoutSeconds, DEFAULT_DRAW_CONFIG.requestTimeoutSeconds),
@@ -322,6 +348,44 @@ export function buildImageRequestPayload ({
   if (options.n && options.n !== 1) payload.n = options.n
 
   return payload
+}
+
+/**
+ * 根据当前配置和输入图片判断本次请求的真实路由。
+ *
+ * `useEditRoute` 只在 images 模式下生效，并且仅对带输入图片的图生图请求
+ * 切到 `/v1/images/edits`；纯文生图仍保持 `/v1/images/generations`。
+ *
+ * @param options - 当前绘图配置。
+ * @param images - 已解析的输入图片列表。
+ * @returns 本次请求的目标路由与是否流式。
+ */
+export function resolveRequestTarget (options: DrawConfig, images: readonly string[]): RequestTarget {
+  if (usesChatCompletionsApi(options)) {
+    return {
+      endpoint: CHAT_COMPLETIONS_ENDPOINT,
+      stream: true,
+    }
+  }
+
+  if (usesResponsesApi(options)) {
+    return {
+      endpoint: RESPONSES_ENDPOINT,
+      stream: true,
+    }
+  }
+
+  if (options.apiMode === 'images' && options.useEditRoute && images.length > 0) {
+    return {
+      endpoint: IMAGE_EDITS_ENDPOINT,
+      stream: false,
+    }
+  }
+
+  return {
+    endpoint: options.endpoint,
+    stream: false,
+  }
 }
 
 /**
@@ -428,42 +492,6 @@ function extractImagesFromText (content: unknown): string[] {
 
 function uniqueStrings (values: readonly string[]): string[] {
   return [...new Set(values.filter(Boolean))]
-}
-
-function getMimeType (filePath: string): string {
-  switch (path.extname(filePath).toLowerCase()) {
-    case '.jpg':
-    case '.jpeg':
-      return 'image/jpeg'
-    case '.webp':
-      return 'image/webp'
-    case '.gif':
-      return 'image/gif'
-    default:
-      return 'image/png'
-  }
-}
-
-/**
- * 将 Karin/QQ 得到的图片输入统一转换成上游可接收的 URL 或 data URL。
- *
- * @param images - Karin 事件里提取到的图片地址、file URL 或 base64:// 内容。
- * @returns 上游 API 可读取的图片 URL 或 data URL 列表。
- */
-export async function resolveApiImageInputs (images: readonly string[]): Promise<string[]> {
-  return Promise.all(images.map(async (input) => {
-    if (input.startsWith(BASE64_PREFIX)) {
-      return `data:image/png;base64,${input.slice(BASE64_PREFIX.length)}`
-    }
-
-    if (HTTP_URL_REG.test(input) || DATA_URL_REG.test(input)) {
-      return input
-    }
-
-    const filePath = input.startsWith('file://') ? fileURLToPath(input) : input
-    const buffer = await fs.readFile(filePath)
-    return `data:${getMimeType(filePath)};base64,${buffer.toString('base64')}`
-  }))
 }
 
 function compactResponseText (text: string, maxLength = 120): string {
@@ -647,22 +675,32 @@ function sanitizePayloadForLog (value: unknown, key = ''): unknown {
 export async function generateImages (prompt: string, images: string[], config: DrawConfig): Promise<string[]> {
   const requestId = createRequestId()
   const payload = buildImageRequestPayload({ prompt, images, options: config })
-  const isStreamRequest = usesChatCompletionsApi(config) || usesResponsesApi(config)
+  const target = resolveRequestTarget(config, images)
   const startedAt = Date.now()
+  const requestSummary = [
+    `id=${requestId}`,
+    `mode=${config.apiMode}`,
+    `endpoint=${target.endpoint}`,
+    `edit=${target.endpoint === IMAGE_EDITS_ENDPOINT}`,
+    `images=${images.length}`,
+    `stream=${target.stream}`,
+    `model=${config.model}`,
+  ].join(' ')
+  const sanitizedPayload = JSON.stringify(sanitizePayloadForLog(payload))
 
-  logger.debug(`[karin-plugin-drawImages] 请求开始 id=${requestId} mode=${config.apiMode} endpoint=${config.endpoint} model=${config.model}`)
-  logger.debug(`[karin-plugin-drawImages] 请求体 id=${requestId} payload=${JSON.stringify(sanitizePayloadForLog(payload))}`)
+  logger.debug(`[karin-plugin-drawImages] 请求开始 ${requestSummary}`)
+  logger.debug(`[karin-plugin-drawImages] 请求体 id=${requestId} payload=${sanitizedPayload}`)
 
   try {
-    const response = isStreamRequest
+    const response = target.stream
       ? await postWithStream(
-        `${config.baseUrl}${config.endpoint}`,
+        `${config.baseUrl}${target.endpoint}`,
         config.apiKey,
         payload,
         config.requestTimeoutSeconds,
       )
       : await post(
-        `${config.baseUrl}${config.endpoint}`,
+        `${config.baseUrl}${target.endpoint}`,
         config.apiKey,
         payload,
         config.requestTimeoutSeconds,
@@ -689,7 +727,7 @@ export async function generateImages (prompt: string, images: string[], config: 
     logger.debug(`[karin-plugin-drawImages] 请求完成 id=${requestId} status=${response.status} output=${output.length} duration=${Date.now() - startedAt}ms`)
     return output
   } catch (error) {
-    logger.debug(`[karin-plugin-drawImages] 请求失败 id=${requestId} duration=${Date.now() - startedAt}ms message=${error instanceof Error ? error.message : String(error)}`)
+    logger.debug(`[karin-plugin-drawImages] 请求失败 ${requestSummary} duration=${Date.now() - startedAt}ms payload=${sanitizedPayload}`)
     throw error
   }
 }

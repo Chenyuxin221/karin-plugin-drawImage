@@ -7,6 +7,9 @@ draw:
     endpoint: /v1/images/generations
     model: gpt-image-2
     imageDetail: high
+    imageUploadMode: default
+    imageUploadUrl: ''
+    imageUploadToken: ''
     taskLockEnabled: true
     requestTimeoutSeconds: 600
     moderation: auto
@@ -24,6 +27,8 @@ draw:
       endpoint: ''
       model: ''
       imageDetail: ''
+      useEditRoute: false
+      imageUploadToken: ''
       taskLockEnabled: ''
       requestTimeoutSeconds: ''
       moderation: ''
@@ -40,6 +45,8 @@ draw:
       endpoint: ''
       model: gpt-5.4
       imageDetail: high
+      useEditRoute: false
+      imageUploadToken: ''
       taskLockEnabled: ''
       requestTimeoutSeconds: ''
       moderation: ''
@@ -56,6 +63,8 @@ draw:
       endpoint: ''
       model: ''
       imageDetail: ''
+      useEditRoute: false
+      imageUploadToken: ''
       taskLockEnabled: ''
       requestTimeoutSeconds: ''
       moderation: ''

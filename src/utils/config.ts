@@ -158,13 +158,33 @@ function mergeGlobalConfig (global: DrawConfig, profile: DrawConfigSource): Draw
 }
 
 /**
- * 移除已经废弃、但仍可读取兼容的配置字段。
+ * 移除配置档里已经废弃、但仍可读取兼容的字段。
  *
  * @param source - 原始绘图配置。
  * @returns 去掉废弃字段后的绘图配置。
  */
-function omitDeprecatedConfigKeys (source: DrawConfigSource): DrawConfigSource {
-  const { cooldownSeconds: _cooldownSeconds, ...rest } = source
+function omitDeprecatedProfileConfigKeys (source: DrawConfigSource): DrawConfigSource {
+  const {
+    imageUploadMode: _imageUploadMode,
+    imageUploadUrl: _imageUploadUrl,
+    cooldownSeconds: _cooldownSeconds,
+    ...rest
+  } = source
+  return rest
+}
+
+/**
+ * 移除全局配置里已经废弃或不再允许保存的字段。
+ *
+ * @param source - 原始全局绘图配置。
+ * @returns 去掉无效字段后的全局绘图配置。
+ */
+function omitDeprecatedGlobalConfigKeys (source: DrawConfigSource): DrawConfigSource {
+  const {
+    cooldownSeconds: _cooldownSeconds,
+    useEditRoute: _useEditRoute,
+    ...rest
+  } = source
   return rest
 }
 
@@ -299,12 +319,12 @@ export async function saveDrawConfig (input: DrawConfigSource, filePath = dir.co
     ...current,
     draw: {
       activeProfile,
-      global: omitDeprecatedConfigKeys(globalSource),
+      global: omitDeprecatedGlobalConfigKeys(globalSource),
       profiles: {
-        profile1: omitDeprecatedConfigKeys(getProfileSource(current.draw, 'profile1')),
-        profile2: omitDeprecatedConfigKeys(getProfileSource(current.draw, 'profile2')),
-        profile3: omitDeprecatedConfigKeys(getProfileSource(current.draw, 'profile3')),
-        [activeProfile]: omitDeprecatedConfigKeys(nextProfile),
+        profile1: omitDeprecatedProfileConfigKeys(getProfileSource(current.draw, 'profile1')),
+        profile2: omitDeprecatedProfileConfigKeys(getProfileSource(current.draw, 'profile2')),
+        profile3: omitDeprecatedProfileConfigKeys(getProfileSource(current.draw, 'profile3')),
+        [activeProfile]: omitDeprecatedProfileConfigKeys(nextProfile),
       },
     },
   }
@@ -332,7 +352,7 @@ export async function saveDrawSettings (input: DrawProfilesConfigSource, filePat
   }
   const profiles = Object.fromEntries(DRAW_PROFILE_IDS.map((profileId) => [
     profileId,
-    omitDeprecatedConfigKeys({
+    omitDeprecatedProfileConfigKeys({
       ...getProfileSource(current.draw, profileId),
       ...(inputProfiles[profileId] ?? {}),
     }),
@@ -341,7 +361,7 @@ export async function saveDrawSettings (input: DrawProfilesConfigSource, filePat
     ...current,
     draw: {
       activeProfile,
-      global: omitDeprecatedConfigKeys(global),
+      global: omitDeprecatedGlobalConfigKeys(global),
       profiles,
     },
   }

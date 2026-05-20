@@ -2,13 +2,13 @@ import { karin, logger, segment, type Contact, type Elements, type SendMessage }
 
 import { dir } from '@/dir'
 import { getDrawConfig } from '@/utils/config'
+import { resolveApiImageInputs } from '@/utils/image'
 import {
   DRAW_COMMAND_REG,
   DRAW_USAGE_TEXT,
   TRANSPARENT_DRAW_COMMAND_REG,
   generateImages,
   parseDrawPrompt,
-  resolveApiImageInputs,
   type DrawConfig,
 } from '@/utils/draw'
 
@@ -70,7 +70,16 @@ function getGlobalTaskState (): DrawTaskState {
 
 const defaultDeps: DrawDeps = {
   getConfig: () => getDrawConfig(),
-  resolveImages: async (images) => resolveApiImageInputs(images),
+  resolveImages: async (images) => {
+    const config = getDrawConfig()
+    return resolveApiImageInputs(images, {
+      imageUploadMode: config.imageUploadMode,
+      imageUploadUrl: config.imageUploadUrl,
+      imageUploadToken: config.imageUploadToken,
+      requestTimeoutSeconds: config.requestTimeoutSeconds,
+      outputFormat: config.outputFormat,
+    })
+  },
   generate: async (prompt, images, config) => generateImages(prompt, images, config),
   transformConfig: (config) => config,
   mapOutput: (image) => image,
