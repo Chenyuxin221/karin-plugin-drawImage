@@ -37,6 +37,9 @@ export const dir = {
   },
   /** 插件在 @karinjs 运行时目录中的绝对路径。 */
   get karinPath () {
+    const runtimeDir = process.env.KARIN_DRAWIMAGES_RUNTIME_DIR?.trim()
+    if (runtimeDir) return path.resolve(runtimeDir)
+
     return path.join(karinPathBase, pluginName)
   },
   /** 插件运行时配置目录。 */

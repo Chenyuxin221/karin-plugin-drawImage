@@ -150,14 +150,14 @@ export async function postMultipart (
   url: string,
   file: MultipartFileInput,
   timeoutSeconds: number,
-  options: MultipartRequestOptions = {},
+  options: MultipartRequestOptions = {}
 ): Promise<ApiResponse> {
   try {
     const form = new FormData()
     form.append(
       file.fieldName ?? 'file',
       new Blob([new Uint8Array(file.buffer)], { type: file.contentType || 'application/octet-stream' }),
-      file.fileName,
+      file.fileName
     )
 
     const response = await fetch(url, {
@@ -228,7 +228,7 @@ export async function post (
   url: string,
   apiKey: string,
   payload: Record<string, unknown>,
-  timeoutSeconds: number,
+  timeoutSeconds: number
 ): Promise<ApiResponse> {
   try {
     const response = await axios.post(url, payload, {
@@ -274,7 +274,7 @@ function appendMessageContent (message: EventSourceMessage, textParts: string[])
       textParts.push(
         ...collectText(choice?.delta),
         ...collectText(choice?.message),
-        ...collectText(choice?.content),
+        ...collectText(choice?.content)
       )
     }
 
@@ -340,7 +340,7 @@ export async function postWithStream (
   url: string,
   apiKey: string,
   payload: Record<string, unknown>,
-  timeoutSeconds: number,
+  timeoutSeconds: number
 ): Promise<ApiResponse> {
   try {
     const response = await axios.post(url, payload, {

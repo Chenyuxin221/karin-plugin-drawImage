@@ -1,7 +1,6 @@
 import { logger } from 'node-karin'
 
 import { post, postWithStream, type ApiResponse } from './http'
-import { resolveApiImageInputs } from './image'
 
 const BASE64_PREFIX = 'base64://'
 const IMAGE_GENERATIONS_ENDPOINT = '/v1/images/generations'
@@ -420,16 +419,16 @@ function buildResponsesImageGenerationTool (options: DrawConfig): Record<string,
 export function extractOutputImages (json: any): string[] {
   const dataImages = Array.isArray(json?.data)
     ? json.data.flatMap((item: any) => {
-      if (typeof item?.b64_json === 'string' && item.b64_json) {
-        return [`${BASE64_PREFIX}${item.b64_json}`]
-      }
+        if (typeof item?.b64_json === 'string' && item.b64_json) {
+          return [`${BASE64_PREFIX}${item.b64_json}`]
+        }
 
-      if (typeof item?.url === 'string' && item.url) {
-        return [item.url]
-      }
+        if (typeof item?.url === 'string' && item.url) {
+          return [item.url]
+        }
 
-      return []
-    })
+        return []
+      })
     : []
 
   const chatImages = Array.isArray(json?.choices)
@@ -452,9 +451,9 @@ function extractImagesFromResponsesOutput (output: unknown): string[] {
   return output.flatMap((item: any) => {
     const contentImages = Array.isArray(item?.content)
       ? item.content.flatMap((content: any) => [
-        ...extractImagesFromText(content?.text),
-        ...extractImagesFromText(content?.content),
-      ])
+          ...extractImagesFromText(content?.text),
+          ...extractImagesFromText(content?.content),
+        ])
       : []
 
     return [
@@ -528,8 +527,20 @@ function parseJsonResponse (response: ApiResponse): any {
   }
 }
 
-function usesChatCompletionsApi (config: DrawConfig): boolean {
+export function usesChatCompletionsApi (config: DrawConfig): boolean {
   return config.apiMode === 'chatCompletions' || config.endpoint === CHAT_COMPLETIONS_ENDPOINT
+}
+
+/**
+ * 判断当前接口是否接收尺寸、质量、背景等绘图输出参数。
+ *
+ * Chat Completions 只接收消息内容，这些绘图参数不会被发送。
+ *
+ * @param config - 当前绘图配置。
+ * @returns 是否支持绘图输出参数。
+ */
+export function supportsDrawOutputOptions (config: DrawConfig): boolean {
+  return !usesChatCompletionsApi(config)
 }
 
 /**
@@ -697,13 +708,13 @@ export async function generateImages (prompt: string, images: string[], config: 
         `${config.baseUrl}${target.endpoint}`,
         config.apiKey,
         payload,
-        config.requestTimeoutSeconds,
+        config.requestTimeoutSeconds
       )
       : await post(
         `${config.baseUrl}${target.endpoint}`,
         config.apiKey,
         payload,
-        config.requestTimeoutSeconds,
+        config.requestTimeoutSeconds
       )
 
     const json = parseJsonResponse(response)

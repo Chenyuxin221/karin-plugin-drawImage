@@ -64,6 +64,17 @@ test('formatDrawSizeList marks active size with hash', () => {
   ].join('\n'))
 })
 
+test('formatDrawSizeList explains unsupported chat completions mode', () => {
+  const settings = createSettings()
+  settings.profiles.profile2 = toDrawConfig({
+    name: '聊天配置',
+    apiMode: 'chatCompletions',
+    size: '2560x1440',
+  })
+
+  assert.equal(formatDrawSizeList(settings), '当前配置使用 Chat Completions，分辨率参数不会发送')
+})
+
 test('handleDrawHelpMessage replies help menu', async () => {
   const replies: unknown[] = []
 
@@ -96,6 +107,24 @@ test('handleShowDrawConfigMessage replies profile list', async () => {
   assert.equal(replies.length, 1)
   assert.match(String(replies[0]), /1\. 配置一 #/)
   assert.match(String(replies[0]), /2\. 图生图配置/)
+})
+
+test('configuration commands report read errors', async () => {
+  const replies: unknown[] = []
+
+  await handleShowDrawConfigMessage({
+    msg: '#配置',
+    hasPermission: () => true,
+    reply: async (message: unknown) => {
+      replies.push(message)
+    },
+  }, {
+    getSettings: () => {
+      throw new Error('YAML 格式错误')
+    },
+  })
+
+  assert.match(String(replies[0]), /绘图配置操作失败: YAML 格式错误/)
 })
 
 test('config management commands reject users without admin permission', async () => {
@@ -172,6 +201,7 @@ test('handleSwitchDrawSizeMessage switches current profile size by 1-based index
       replies.push(message)
     },
   }, {
+    getSettings: () => createSettings('profile2'),
     saveConfig: async (input) => {
       savedInput = input
       return toDrawConfig({ name: '图生图配置', size: input.size }) as DrawConfig
@@ -194,6 +224,7 @@ test('handleSwitchDrawSizeMessage rejects invalid index', async () => {
       replies.push(message)
     },
   }, {
+    getSettings: () => createSettings('profile2'),
     saveConfig: async (input) => {
       saveCalled = true
       return toDrawConfig({ size: input.size })
@@ -203,6 +234,30 @@ test('handleSwitchDrawSizeMessage rejects invalid index', async () => {
   assert.equal(result, true)
   assert.equal(saveCalled, false)
   assert.match(String(replies[0]), /分辨率编号不存在/)
+})
+
+test('handleSwitchDrawSizeMessage rejects chat completions profiles', async () => {
+  const replies: unknown[] = []
+  const settings = createSettings('profile2')
+  settings.profiles.profile2 = toDrawConfig({ name: '聊天配置', apiMode: 'chatCompletions' })
+  let saveCalled = false
+
+  await handleSwitchDrawSizeMessage({
+    msg: '#切换分辨率1',
+    hasPermission: () => true,
+    reply: async (message: unknown) => {
+      replies.push(message)
+    },
+  }, {
+    getSettings: () => settings,
+    saveConfig: async (input) => {
+      saveCalled = true
+      return toDrawConfig({ size: input.size })
+    },
+  })
+
+  assert.equal(saveCalled, false)
+  assert.match(String(replies[0]), /Chat Completions，无法切换分辨率/)
 })
 
 test('handleSwitchDrawConfigMessage rejects invalid index', async () => {

@@ -306,7 +306,7 @@ test('generateImages reports a clear timeout error', async () => {
         endpoint: '/v1/images/generations',
         requestTimeoutSeconds: 1,
       })),
-      /接口请求超时/,
+      /接口请求超时/
     )
   } finally {
     await new Promise<void>(resolve => server.close(() => resolve()))
@@ -330,7 +330,7 @@ test('generateImages reports non-json api responses clearly', async () => {
         endpoint: '/v1/images/generations',
         requestTimeoutSeconds: 3,
       })),
-      /接口返回非 JSON 响应: 502 Bad Gateway.*text\/html.*Bad Gateway/,
+      /接口返回非 JSON 响应: 502 Bad Gateway.*text\/html.*Bad Gateway/
     )
   } finally {
     await new Promise<void>(resolve => server.close(() => resolve()))
@@ -440,7 +440,7 @@ test('generateImages reports streaming api error events even when http succeeds'
         model: 'openai-image-2-2k',
         requestTimeoutSeconds: 3,
       })),
-      /something was wrong/,
+      /something was wrong/
     )
   } finally {
     await new Promise<void>(resolve => server.close(() => resolve()))

@@ -173,7 +173,7 @@ function getUploadFileName (input: string, outputFormat?: string): string {
 async function readImageSource (
   input: string,
   timeoutSeconds: number,
-  outputFormat?: string,
+  outputFormat?: string
 ): Promise<{ buffer: Buffer, mimeType: string, fileName: string }> {
   if (input.startsWith(BASE64_PREFIX)) {
     const mimeType = getDefaultMimeType(outputFormat)
@@ -261,7 +261,7 @@ async function uploadImageToCustomHost (
   uploadUrl: string,
   timeoutSeconds: number,
   imageUploadToken?: string,
-  outputFormat?: string,
+  outputFormat?: string
 ): Promise<string> {
   const file = await readImageSource(input, timeoutSeconds, outputFormat)
   const response = await postMultipart(uploadUrl, {
@@ -300,7 +300,7 @@ async function uploadImageToCustomHost (
  */
 export async function resolveApiImageInputs (
   images: readonly string[],
-  config: ImageInputConfig,
+  config: ImageInputConfig
 ): Promise<string[]> {
   if (config.imageUploadMode === 'default') {
     return [...images]
@@ -326,6 +326,6 @@ export async function resolveApiImageInputs (
     config.imageUploadUrl,
     config.requestTimeoutSeconds,
     config.imageUploadToken,
-    config.outputFormat,
+    config.outputFormat
   )))
 }

@@ -8,7 +8,7 @@ import {
   type DrawProfileId,
   type DrawSettings,
 } from '@/utils/config'
-import { DRAW_SIZE_PRESETS, type DrawConfig } from '@/utils/draw'
+import { DRAW_SIZE_PRESETS, supportsDrawOutputOptions, type DrawConfig } from '@/utils/draw'
 
 export const DRAW_HELP_REG = /^#help$/i
 export const SHOW_DRAW_CONFIG_REG = /^#配置$/
@@ -60,6 +60,18 @@ function canManageDrawConfig (e: ConfigEvent): boolean {
  */
 async function replyNoPermission (e: ConfigEvent): Promise<true> {
   await e.reply(CONFIG_AUTH_FAIL_TEXT)
+  return true
+}
+
+/**
+ * 配置读取或保存失败时回复统一提示。
+ *
+ * @param e - 配置命令事件。
+ * @param error - 原始配置错误。
+ * @returns Karin 命令处理完成标记。
+ */
+async function replyConfigError (e: ConfigEvent, error: unknown): Promise<true> {
+  await e.reply(`绘图配置操作失败: ${error instanceof Error ? error.message : String(error)}`)
   return true
 }
 
@@ -124,7 +136,12 @@ export function formatDrawProfileList (settings: DrawSettings): string {
  * @returns 用户可读的分辨率列表文本。
  */
 export function formatDrawSizeList (settings: DrawSettings): string {
-  const currentSize = settings.profiles[settings.activeProfile].size
+  const activeConfig = settings.profiles[settings.activeProfile]
+  if (!supportsDrawOutputOptions(activeConfig)) {
+    return '当前配置使用 Chat Completions，分辨率参数不会发送'
+  }
+
+  const currentSize = activeConfig.size
   const lines = DRAW_SIZE_PRESETS.map((preset, index) => {
     const marker = currentSize === preset.value ? ' #' : ''
     return `${index + 1}. ${preset.label} ${preset.description}${marker}`
@@ -153,13 +170,18 @@ export async function handleDrawHelpMessage (e: ConfigEvent): Promise<true> {
  */
 export async function handleShowDrawConfigMessage (
   e: ConfigEvent,
-  deps: Partial<ConfigDeps> = {},
+  deps: Partial<ConfigDeps> = {}
 ): Promise<true> {
   if (!canManageDrawConfig(e)) return replyNoPermission(e)
 
   const runtime = { ...defaultDeps, ...deps }
 
-  await e.reply(formatDrawProfileList(runtime.getSettings()))
+  try {
+    await e.reply(formatDrawProfileList(runtime.getSettings()))
+  } catch (error) {
+    return replyConfigError(e, error)
+  }
+
   return true
 }
 
@@ -172,7 +194,7 @@ export async function handleShowDrawConfigMessage (
  */
 export async function handleSwitchDrawConfigMessage (
   e: ConfigEvent,
-  deps: Partial<ConfigDeps> = {},
+  deps: Partial<ConfigDeps> = {}
 ): Promise<true> {
   if (!canManageDrawConfig(e)) return replyNoPermission(e)
 
@@ -185,8 +207,13 @@ export async function handleSwitchDrawConfigMessage (
     return true
   }
 
-  const settings = await runtime.switchProfile(profileId)
-  await e.reply(`已切换到配置${index}：${settings.profiles[profileId].name}`)
+  try {
+    const settings = await runtime.switchProfile(profileId)
+    await e.reply(`已切换到配置${index}：${settings.profiles[profileId].name}`)
+  } catch (error) {
+    return replyConfigError(e, error)
+  }
+
   return true
 }
 
@@ -199,13 +226,18 @@ export async function handleSwitchDrawConfigMessage (
  */
 export async function handleShowDrawSizeMessage (
   e: ConfigEvent,
-  deps: Partial<ConfigDeps> = {},
+  deps: Partial<ConfigDeps> = {}
 ): Promise<true> {
   if (!canManageDrawConfig(e)) return replyNoPermission(e)
 
   const runtime = { ...defaultDeps, ...deps }
 
-  await e.reply(formatDrawSizeList(runtime.getSettings()))
+  try {
+    await e.reply(formatDrawSizeList(runtime.getSettings()))
+  } catch (error) {
+    return replyConfigError(e, error)
+  }
+
   return true
 }
 
@@ -218,11 +250,23 @@ export async function handleShowDrawSizeMessage (
  */
 export async function handleSwitchDrawSizeMessage (
   e: ConfigEvent,
-  deps: Partial<ConfigDeps> = {},
+  deps: Partial<ConfigDeps> = {}
 ): Promise<true> {
   if (!canManageDrawConfig(e)) return replyNoPermission(e)
 
   const runtime = { ...defaultDeps, ...deps }
+  let settings: DrawSettings
+  try {
+    settings = runtime.getSettings()
+  } catch (error) {
+    return replyConfigError(e, error)
+  }
+
+  if (!supportsDrawOutputOptions(settings.profiles[settings.activeProfile])) {
+    await e.reply('当前配置使用 Chat Completions，无法切换分辨率')
+    return true
+  }
+
   const index = Number.parseInt(e.msg.match(SWITCH_DRAW_SIZE_REG)?.[1] ?? '', 10)
   const preset = sizePresetFromIndex(index)
 
@@ -231,8 +275,13 @@ export async function handleSwitchDrawSizeMessage (
     return true
   }
 
-  const config = await runtime.saveConfig({ size: preset.value })
-  await e.reply(`已切换分辨率${index}：${preset.label} ${preset.description}（当前配置：${config.name}）`)
+  try {
+    const config = await runtime.saveConfig({ size: preset.value })
+    await e.reply(`已切换分辨率${index}：${preset.label} ${preset.description}（当前配置：${config.name}）`)
+  } catch (error) {
+    return replyConfigError(e, error)
+  }
+
   return true
 }
 

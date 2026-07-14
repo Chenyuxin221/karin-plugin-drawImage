@@ -80,7 +80,7 @@ test('postWithStream reads content from alternative stream fields', async () => 
 
     assert.equal(
       json.choices[0].message.content,
-      '![image](https://cdn.example.com/array.png)![image](https://cdn.example.com/content.png)',
+      '![image](https://cdn.example.com/array.png)![image](https://cdn.example.com/content.png)'
     )
   } finally {
     await new Promise<void>(resolve => server.close(() => resolve()))

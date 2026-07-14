@@ -25,8 +25,13 @@
   ],
   "scripts": {
     "app": "node lib/src/app.js",
-    "build": "tsup",
+    "build": "tsup && vite build",
     "dev": "cross-env EBV_FILE=\"development.env\" node --import tsx src/app.ts",
+    "lint": "eslint src test web.config.ts vite.config.ts web/src",
+    "test": "node --import tsx --import ./test/setup.ts --test --test-force-exit --test-concurrency=1 test/*.test.ts",
+    "typecheck": "tsc --noEmit --skipLibCheck && tsc -p web/tsconfig.json --noEmit",
+    "web:dev": "vite",
+    "web:preview": "vite preview",
     "pub": "npm publish --access public"
   },
   "main": "lib/src/index.js",
@@ -34,13 +39,20 @@
     "@types/express": "^5.0.1",
     "@types/lodash": "^4.17.16",
     "@types/node": "^20.17.8",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.1.4",
     "cross-env": "^7.0.3",
     "eslint": "^9.7.0",
+    "lucide-react": "^0.545.0",
     "neostandard": "^0.11.9",
-    "node-karin": "^1.15.5",
+    "node-karin": "^1.16.3",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
     "tsup": "^8.5.0",
     "tsx": "^4.19.2",
-    "typescript": "^5.5.3"
+    "typescript": "^5.5.3",
+    "vite": "^7.3.1"
   },
   "karin": {
     "main": "src/index.ts",

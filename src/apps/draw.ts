@@ -9,6 +9,7 @@ import {
   TRANSPARENT_DRAW_COMMAND_REG,
   generateImages,
   parseDrawPrompt,
+  supportsDrawOutputOptions,
   type DrawConfig,
 } from '@/utils/draw'
 
@@ -33,11 +34,13 @@ interface DrawDeps {
   /** 获取当前绘图配置 */
   getConfig: () => DrawConfig
   /** 将事件图片转换为上游可读取的图片输入 */
-  resolveImages: (images: readonly string[]) => Promise<string[]>
+  resolveImages: (images: readonly string[], config: DrawConfig) => Promise<string[]>
   /** 调用绘图接口 */
   generate: (prompt: string, images: string[], config: DrawConfig) => Promise<string[]>
   /** 对单次请求配置做临时调整，不会写回配置文件 */
   transformConfig: (config: DrawConfig) => DrawConfig
+  /** 校验当前命令是否适用于生效配置 */
+  validateConfig: (config: DrawConfig) => string | undefined
   /** 将上游图片结果映射为 Karin 可发送内容 */
   mapOutput: (image: string) => string | Elements
   /** 当前绘图任务状态 */
@@ -70,8 +73,7 @@ function getGlobalTaskState (): DrawTaskState {
 
 const defaultDeps: DrawDeps = {
   getConfig: () => getDrawConfig(),
-  resolveImages: async (images) => {
-    const config = getDrawConfig()
+  resolveImages: async (images, config) => {
     return resolveApiImageInputs(images, {
       imageUploadMode: config.imageUploadMode,
       imageUploadUrl: config.imageUploadUrl,
@@ -82,6 +84,7 @@ const defaultDeps: DrawDeps = {
   },
   generate: async (prompt, images, config) => generateImages(prompt, images, config),
   transformConfig: (config) => config,
+  validateConfig: () => undefined,
   mapOutput: (image) => image,
   taskState: getGlobalTaskState(),
 }
@@ -118,11 +121,30 @@ function uniqueImages (images: readonly string[]): string[] {
  * @param config - 当前生效的绘图配置。
  * @returns background 被临时覆盖为 transparent 的新配置。
  */
-function withTransparentBackground (config: DrawConfig): DrawConfig {
+export function withTransparentBackground (config: DrawConfig): DrawConfig {
   return {
     ...config,
     background: 'transparent',
+    outputFormat: config.outputFormat === 'webp' ? 'webp' : 'png',
   }
+}
+
+/**
+ * 校验透明背景命令是否适用于当前接口和模型。
+ *
+ * @param config - 当前生效的绘图配置。
+ * @returns 不支持时的用户提示；支持时返回 undefined。
+ */
+export function validateTransparentDrawConfig (config: DrawConfig): string | undefined {
+  if (!supportsDrawOutputOptions(config)) {
+    return '当前配置使用 Chat Completions，无法设置透明背景'
+  }
+
+  if (config.model.trim().toLowerCase() === 'gpt-image-2') {
+    return '当前模型 gpt-image-2 不支持透明背景，请切换模型后再使用 #tpdraw'
+  }
+
+  return undefined
 }
 
 /**
@@ -156,7 +178,7 @@ async function getDrawInputImages (e: DrawEvent): Promise<string[]> {
  */
 export async function handleDrawMessage (
   e: DrawEvent,
-  deps: Partial<DrawDeps> = {},
+  deps: Partial<DrawDeps> = {}
 ): Promise<true> {
   const runtime = { ...defaultDeps, ...deps }
   const prompt = parseDrawPrompt(e.msg)
@@ -166,9 +188,23 @@ export async function handleDrawMessage (
     return true
   }
 
-  const config = runtime.transformConfig(runtime.getConfig())
+  let config: DrawConfig
+  try {
+    config = runtime.transformConfig(runtime.getConfig())
+  } catch (error) {
+    logger.error('[karin-plugin-drawImages] 读取绘图配置失败', error)
+    await e.reply(`读取绘图配置失败: ${error instanceof Error ? error.message : String(error)}`)
+    return true
+  }
+
   if (!config.apiKey) {
     await e.reply(`未配置绘图密钥，请填写 ${dir.configFile}`)
+    return true
+  }
+
+  const validationError = runtime.validateConfig(config)
+  if (validationError) {
+    await e.reply(validationError)
     return true
   }
 
@@ -182,7 +218,7 @@ export async function handleDrawMessage (
     runtime.taskState.running = true
   }
   try {
-    const inputImages = await runtime.resolveImages(await getDrawInputImages(e))
+    const inputImages = await runtime.resolveImages(await getDrawInputImages(e), config)
     const generatedImages = await runtime.generate(prompt, inputImages, config)
     await e.reply(generatedImages.map(runtime.mapOutput))
   } catch (error) {
@@ -211,6 +247,7 @@ export const draw = karin.command(DRAW_COMMAND_REG, async (e) => {
 export const transparentDraw = karin.command(TRANSPARENT_DRAW_COMMAND_REG, async (e) => {
   return handleDrawMessage(e, {
     transformConfig: withTransparentBackground,
+    validateConfig: validateTransparentDrawConfig,
     mapOutput: (image) => segment.image(image),
   })
 }, {

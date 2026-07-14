@@ -7,7 +7,7 @@ Karin 的 `#draw` AI 绘图插件，支持文生图和图生图，适配 OpenAI 
 - `#draw 提示词` 文生图
 - `#draw 提示词` + 附带图片 图生图
 - `#draw 提示词` + 引用图片 图生图
-- `#tpdraw 提示词` 临时透明背景绘图
+- `#tpdraw 提示词` 临时透明背景绘图，会自动使用 PNG；Chat Completions 和 `gpt-image-2` 不执行该命令
 - 固定三组配置档，可在面板中一键切换
 - 子配置留空时继承全局配置
 - 同一时间只执行一个绘图任务，上一张完成后才能继续下一张
@@ -46,6 +46,8 @@ pnpm build
 - `#help` 查看命令菜单
 
 当消息里带图时，会自动进入图生图模式。
+
+Chat Completions 模式只发送模型、提示词和输入图片，不发送 `size`、`quality`、`outputFormat`、`background`、`moderation` 或 `n`。对应配置档在 Web 面板中会隐藏这些无效字段，分辨率命令也不会修改该配置档。
 
 ## 配置方式
 
@@ -239,6 +241,8 @@ Web 面板仍保留 `size` 自定义输入，适合上游支持额外分辨率�
 - Markdown 图片链接
 - `data:image/...`
 - `base64://...`
+
+该模式不支持 Images/Responses 风格的生成参数，包括尺寸、质量、背景、输出格式、审核级别和生成数量。
 
 ### 3. responses
 

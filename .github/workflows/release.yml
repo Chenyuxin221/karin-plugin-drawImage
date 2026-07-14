@@ -8,7 +8,21 @@ permissions:
   pull-requests: write # 设置拉取请求的权限为写
   issues: write # 设置问题的权限为写
 jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
   release-please:
+    needs: quality
     # 设置工作流程运行环境为 Ubuntu
     runs-on: ubuntu-latest
     steps:
@@ -25,7 +39,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           # 设置 Node.js 版本
-          node-version: 20
+          node-version: 22
           # 设置 npm 注册表 URL
           registry-url: https://registry.npmjs.org
         if: ${{ steps.release.outputs.release_created }}
@@ -34,9 +48,6 @@ jobs:
         if: ${{ steps.release.outputs.release_created }}
       # 编译
       - run: npm run build
-        if: ${{ steps.release.outputs.release_created }}
-      # 删除开发依赖
-      - run: npm pkg delete devDependencies
         if: ${{ steps.release.outputs.release_created }}
       # 发布带npm
       - run: npm run pub

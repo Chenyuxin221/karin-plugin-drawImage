@@ -1,7 +1,11 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { handleDrawMessage } from '../src/apps/draw'
+import {
+  handleDrawMessage,
+  validateTransparentDrawConfig,
+  withTransparentBackground,
+} from '../src/apps/draw'
 import type { DrawConfig } from '../src/utils/draw'
 
 function createConfig (overrides: Partial<DrawConfig> = {}): DrawConfig {
@@ -100,7 +104,7 @@ test('handleDrawMessage sends generated images for image-to-image mode', async (
 
 test('handleDrawMessage temporarily uses transparent background for #tpdraw', async () => {
   const replies: unknown[] = []
-  let generateArgs: { prompt: string, background?: string } | null = null
+  let generateArgs: { prompt: string, background?: string, outputFormat?: string } | null = null
 
   const result = await handleDrawMessage({
     msg: '#tpdraw 透明贴纸',
@@ -109,11 +113,12 @@ test('handleDrawMessage temporarily uses transparent background for #tpdraw', as
       replies.push(message)
     },
   }, {
-    getConfig: () => createConfig({ background: 'auto' }),
-    transformConfig: (config) => ({ ...config, background: 'transparent' }),
+    getConfig: () => createConfig({ model: 'gpt-image-1', background: 'auto', outputFormat: 'jpeg' }),
+    transformConfig: withTransparentBackground,
+    validateConfig: validateTransparentDrawConfig,
     resolveImages: async (images) => [...images],
     generate: async (prompt, _images, config) => {
-      generateArgs = { prompt, background: config.background }
+      generateArgs = { prompt, background: config.background, outputFormat: config.outputFormat }
       return ['https://cdn.example.com/output.png']
     },
   })
@@ -122,8 +127,81 @@ test('handleDrawMessage temporarily uses transparent background for #tpdraw', as
   assert.deepEqual(generateArgs, {
     prompt: '透明贴纸',
     background: 'transparent',
+    outputFormat: 'png',
   })
   assert.deepEqual(replies[0], ['https://cdn.example.com/output.png'])
+})
+
+test('handleDrawMessage rejects transparent background for chat completions', async () => {
+  const replies: unknown[] = []
+  let generateCalled = false
+
+  await handleDrawMessage({
+    msg: '#tpdraw 透明贴纸',
+    image: [],
+    reply: async (message: unknown) => {
+      replies.push(message)
+    },
+  }, {
+    getConfig: () => createConfig({ apiMode: 'chatCompletions', endpoint: '/v1/chat/completions' }),
+    transformConfig: withTransparentBackground,
+    validateConfig: validateTransparentDrawConfig,
+    generate: async () => {
+      generateCalled = true
+      return []
+    },
+  })
+
+  assert.equal(generateCalled, false)
+  assert.match(String(replies[0]), /Chat Completions/)
+})
+
+test('handleDrawMessage rejects transparent background for gpt-image-2', async () => {
+  const replies: unknown[] = []
+  let generateCalled = false
+
+  await handleDrawMessage({
+    msg: '#tpdraw 透明贴纸',
+    image: [],
+    reply: async (message: unknown) => {
+      replies.push(message)
+    },
+  }, {
+    getConfig: () => createConfig({ model: 'gpt-image-2' }),
+    transformConfig: withTransparentBackground,
+    validateConfig: validateTransparentDrawConfig,
+    generate: async () => {
+      generateCalled = true
+      return []
+    },
+  })
+
+  assert.equal(generateCalled, false)
+  assert.match(String(replies[0]), /gpt-image-2 不支持透明背景/)
+})
+
+test('handleDrawMessage reports configuration read errors', async () => {
+  const replies: unknown[] = []
+  let generateCalled = false
+
+  await handleDrawMessage({
+    msg: '#draw 测试',
+    image: [],
+    reply: async (message: unknown) => {
+      replies.push(message)
+    },
+  }, {
+    getConfig: () => {
+      throw new Error('配置格式错误')
+    },
+    generate: async () => {
+      generateCalled = true
+      return []
+    },
+  })
+
+  assert.equal(generateCalled, false)
+  assert.match(String(replies[0]), /读取绘图配置失败: 配置格式错误/)
 })
 
 test('handleDrawMessage uses images from replied message for image-to-image mode', async () => {

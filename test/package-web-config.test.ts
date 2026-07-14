@@ -7,4 +7,8 @@ test('package.json registers karin web config entrypoints', async () => {
 
   assert.equal(pkg.karin?.['ts-web'], 'web.config.ts')
   assert.equal(pkg.karin?.web, 'lib/web.config.js')
+  assert.match(pkg.scripts?.build, /vite build/)
+  assert.match(pkg.scripts?.typecheck, /web\/tsconfig\.json/)
+  assert.ok(pkg.devDependencies?.react)
+  assert.ok(pkg.devDependencies?.vite)
 })

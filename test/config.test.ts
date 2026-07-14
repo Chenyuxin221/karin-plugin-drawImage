@@ -234,4 +234,15 @@ test('config helpers use code defaults and save runtime yaml without example syn
     assert.match(content, /model: gpt-5\.4/)
     assert.match(content, /legacyRoot: true/)
   }
+
+  {
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), 'draw-config-invalid-'))
+    const configFile = path.join(tempDir, 'config.yaml')
+    const invalidYaml = 'draw:\n  profiles: [\n'
+    await fs.writeFile(configFile, invalidYaml, 'utf8')
+
+    assert.throws(() => getDrawSettings(configFile), /无法解析绘图配置文件/)
+    await assert.rejects(saveDrawConfig({ model: 'should-not-save' }, configFile), /无法解析绘图配置文件/)
+    assert.equal(await fs.readFile(configFile, 'utf8'), invalidYaml)
+  }
 })

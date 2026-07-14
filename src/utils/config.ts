@@ -59,8 +59,9 @@ interface PluginConfig {
 function readText (filePath: string): string {
   try {
     return fs.readFileSync(filePath, 'utf8')
-  } catch {
-    return ''
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return ''
+    throw error
   }
 }
 
@@ -68,13 +69,23 @@ function readText (filePath: string): string {
  * 读取 yaml 配置。
  *
  * @param filePath - yaml 文件路径。
- * @returns 插件配置对象；解析失败时返回空对象。
+ * @returns 插件配置对象；文件为空时返回空对象。
+ * @throws 配置文件无法读取或 YAML 解析失败时抛出错误。
  */
 function readYaml (filePath: string): PluginConfig {
+  const content = readText(filePath)
+  if (!content.trim()) return {}
+
   try {
-    return (yaml.parse(readText(filePath)) ?? {}) as PluginConfig
-  } catch {
-    return {}
+    const parsed = yaml.parse(content)
+    if (parsed === null || parsed === undefined) return {}
+    if (typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new TypeError('配置文件根节点必须是对象')
+    }
+
+    return parsed as PluginConfig
+  } catch (error) {
+    throw new Error(`无法解析绘图配置文件 ${filePath}`, { cause: error })
   }
 }
 
@@ -93,7 +104,15 @@ function writeYaml (filePath: string, content: PluginConfig): void {
   }
 
   fs.mkdirSync(path.dirname(filePath), { recursive: true })
-  fs.writeFileSync(filePath, next, 'utf8')
+  const tempFile = `${filePath}.${process.pid}.${Date.now()}.tmp`
+
+  try {
+    fs.writeFileSync(tempFile, next, 'utf8')
+    fs.renameSync(tempFile, filePath)
+  } catch (error) {
+    fs.rmSync(tempFile, { force: true })
+    throw error
+  }
 }
 
 /**
