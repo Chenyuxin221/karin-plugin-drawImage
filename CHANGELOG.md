@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/Chenyuxin221/karin-plugin-drawImage/compare/v1.0.1...v1.0.2) (2026-07-21)
+
+
+### Bug Fixes
+
+* correct karin runtime dir and oidc publish ([4d71aae](https://github.com/Chenyuxin221/karin-plugin-drawImage/commit/4d71aaee767744223be8bc49df83c16e26e02539))
+
 ## [1.0.1](https://github.com/Chenyuxin221/karin-plugin-drawImage/compare/v1.0.0...v1.0.1) (2026-07-21)
 
 
