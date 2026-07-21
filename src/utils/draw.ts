@@ -417,19 +417,16 @@ function buildResponsesImageGenerationTool (options: DrawConfig): Record<string,
  * @returns 可直接发送给 Karin 的图片结果列表。
  */
 export function extractOutputImages (json: any): string[] {
-  const dataImages = Array.isArray(json?.data)
-    ? json.data.flatMap((item: any) => {
+  const dataImages: string[] = []
+  if (Array.isArray(json?.data)) {
+    for (const item of json.data) {
       if (typeof item?.b64_json === 'string' && item.b64_json) {
-        return [`${BASE64_PREFIX}${item.b64_json}`]
+        dataImages.push(BASE64_PREFIX + item.b64_json)
+      } else if (typeof item?.url === 'string' && item.url) {
+        dataImages.push(item.url)
       }
-
-      if (typeof item?.url === 'string' && item.url) {
-        return [item.url]
-      }
-
-      return []
-    })
-    : []
+    }
+  }
 
   const chatImages = Array.isArray(json?.choices)
     ? json.choices.flatMap((choice: any) => extractImagesFromText(choice?.message?.content))
@@ -449,12 +446,15 @@ function extractImagesFromResponsesOutput (output: unknown): string[] {
   if (!Array.isArray(output)) return []
 
   return output.flatMap((item: any) => {
-    const contentImages = Array.isArray(item?.content)
-      ? item.content.flatMap((content: any) => [
-        ...extractImagesFromText(content?.text),
-        ...extractImagesFromText(content?.content),
-      ])
-      : []
+    const contentImages: string[] = []
+    if (Array.isArray(item?.content)) {
+      for (const content of item.content) {
+        contentImages.push(
+          ...extractImagesFromText(content?.text),
+          ...extractImagesFromText(content?.content)
+        )
+      }
+    }
 
     return [
       ...contentImages,
