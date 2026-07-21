@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.3](https://github.com/Chenyuxin221/karin-plugin-drawImage/compare/v1.0.2...v1.0.3) (2026-07-21)
+
+
+### Bug Fixes
+
+* align runtime layout with package name ([4c59a45](https://github.com/Chenyuxin221/karin-plugin-drawImage/commit/4c59a45e78c1d0b0c615ff7557cfc4ea9ae65f91))
+* stabilize image extraction linting ([16d45cb](https://github.com/Chenyuxin221/karin-plugin-drawImage/commit/16d45cbf3d320062c3a9deb908735b6781992dbc))
+
 ## [1.0.2](https://github.com/Chenyuxin221/karin-plugin-drawImage/compare/v1.0.1...v1.0.2) (2026-07-21)
 
 
