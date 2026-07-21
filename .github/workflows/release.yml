@@ -28,8 +28,8 @@ jobs:
     # 设置工作流程运行环境为 Ubuntu
     runs-on: ubuntu-latest
     steps:
-      # 使用 release-please-action@v3 动作
-      - uses: google-github-actions/release-please-action@v3
+      # 使用 release-please-action@v5 动作
+      - uses: googleapis/release-please-action@v5
         id: release
         with:
           # 设置发布类型为 Node.js
