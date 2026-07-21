@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.0 (2026-07-21)
+
+
+### Bug Fixes
+
+* bug ([4955ded](https://github.com/Chenyuxin221/karin-plugin-drawImage/commit/4955ded3037ae004a8e5c96484fa8b14689b1897))
+* bug ([77bc31d](https://github.com/Chenyuxin221/karin-plugin-drawImage/commit/77bc31de77b96ba3b43d4aed01dcf9c4d039324a))
+
 ## 1.0.0
 
 - 将绘图脚本整理为独立 Karin 插件包
