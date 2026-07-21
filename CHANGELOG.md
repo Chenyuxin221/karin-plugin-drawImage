@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/Chenyuxin221/karin-plugin-drawImage/compare/v1.0.0...v1.0.1) (2026-07-21)
+
+
+### Bug Fixes
+
+* correct published plugin metadata ([1e45e1d](https://github.com/Chenyuxin221/karin-plugin-drawImage/commit/1e45e1d1c0463cd323b1b3be73c2ce6c3aa10052))
+
 ## 1.0.0 (2026-07-21)
 
 
