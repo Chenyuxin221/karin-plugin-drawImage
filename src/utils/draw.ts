@@ -419,16 +419,16 @@ function buildResponsesImageGenerationTool (options: DrawConfig): Record<string,
 export function extractOutputImages (json: any): string[] {
   const dataImages = Array.isArray(json?.data)
     ? json.data.flatMap((item: any) => {
-        if (typeof item?.b64_json === 'string' && item.b64_json) {
-          return [`${BASE64_PREFIX}${item.b64_json}`]
-        }
+      if (typeof item?.b64_json === 'string' && item.b64_json) {
+        return [`${BASE64_PREFIX}${item.b64_json}`]
+      }
 
-        if (typeof item?.url === 'string' && item.url) {
-          return [item.url]
-        }
+      if (typeof item?.url === 'string' && item.url) {
+        return [item.url]
+      }
 
-        return []
-      })
+      return []
+    })
     : []
 
   const chatImages = Array.isArray(json?.choices)
@@ -451,9 +451,9 @@ function extractImagesFromResponsesOutput (output: unknown): string[] {
   return output.flatMap((item: any) => {
     const contentImages = Array.isArray(item?.content)
       ? item.content.flatMap((content: any) => [
-          ...extractImagesFromText(content?.text),
-          ...extractImagesFromText(content?.content),
-        ])
+        ...extractImagesFromText(content?.text),
+        ...extractImagesFromText(content?.content),
+      ])
       : []
 
     return [
@@ -608,7 +608,7 @@ function findApiErrorMessageInText (text: string): string | undefined {
     try {
       const message = findApiErrorMessage(JSON.parse(match[0]))
       if (message) return message
-    } catch {}
+    } catch { }
   }
 
   return undefined

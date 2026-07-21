@@ -74,7 +74,7 @@
   },
   "files": [
     "/lib/**/*.js",
-    "/config/*.yaml.example",
+    "/lib/web/**",
     "resources",
     "!lib/app.js"
   ],

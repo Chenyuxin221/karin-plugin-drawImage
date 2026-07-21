@@ -8,9 +8,7 @@ const pluginDir = fileURLToPath(new URL('../', import.meta.url))
 /** 插件 package.json 内容。 */
 const pkg = requireFileSync(path.join(pluginDir, 'package.json'))
 /** 插件运行时目录名称。 */
-const pluginName = 'karin-plugin-drawImages'
-/** npm 包名目录，用于兼容 1.0.1 的小写运行时目录。 */
-const packagePluginName = pkg.name
+const pluginName = String(pkg.name || 'karin-plugin-drawimages')
 
 /**
  * 插件目录信息。
@@ -30,27 +28,12 @@ export const dir = {
   get name () {
     return pkg.name
   },
-  /** 插件包内默认配置目录。 */
-  get defConfigDir () {
-    return path.join(pluginDir, 'config')
-  },
-  /** 插件包内默认配置模板文件。 */
-  get configExampleFile () {
-    return path.join(this.defConfigDir, 'config.yaml.example')
-  },
   /** 插件在 @karinjs 运行时目录中的绝对路径。 */
   get karinPath () {
     const runtimeDir = process.env.KARIN_DRAWIMAGES_RUNTIME_DIR?.trim()
     if (runtimeDir) return path.resolve(runtimeDir)
 
-    const runtimePath = path.join(karinPathBase, pluginName)
-    const packageRuntimePath = path.join(karinPathBase, packagePluginName)
-
-    if (pluginName !== packagePluginName && !fs.existsSync(runtimePath) && fs.existsSync(packageRuntimePath)) {
-      return packageRuntimePath
-    }
-
-    return runtimePath
+    return path.join(karinPathBase, pluginName)
   },
   /** 插件运行时配置目录。 */
   get ConfigDir () {
@@ -64,8 +47,21 @@ export const dir = {
   get configFile () {
     return path.join(this.configDir, 'config.yaml')
   },
+  /** 插件运行时数据目录。 */
+  get dataDir () {
+    return path.join(this.karinPath, 'data')
+  },
   /** 插件运行时资源目录。 */
   get defResourcesDir () {
     return path.join(this.karinPath, 'resources')
   },
+}
+
+/**
+ * 初始化运行时目录。
+ */
+export function ensureRuntimeLayout (): void {
+  fs.mkdirSync(dir.configDir, { recursive: true })
+  fs.mkdirSync(dir.dataDir, { recursive: true })
+  fs.mkdirSync(dir.defResourcesDir, { recursive: true })
 }
