@@ -1,13 +1,16 @@
+import fs from 'node:fs'
 import path from 'node:path'
 import { URL, fileURLToPath } from 'node:url'
 import { karinPathBase, requireFileSync } from 'node-karin'
 
 /** 插件包绝对路径。 */
 const pluginDir = fileURLToPath(new URL('../', import.meta.url))
-/** 插件包目录名称。 */
-const pluginName = path.basename(pluginDir)
 /** 插件 package.json 内容。 */
 const pkg = requireFileSync(path.join(pluginDir, 'package.json'))
+/** 插件运行时目录名称。 */
+const pluginName = pkg.name
+/** 历史运行时目录名称，用于兼容 1.0.0 前的大小写目录。 */
+const legacyPluginName = 'karin-plugin-drawImages'
 
 /**
  * 插件目录信息。
@@ -15,7 +18,7 @@ const pkg = requireFileSync(path.join(pluginDir, 'package.json'))
 export const dir = {
   /** 插件根目录绝对路径。 */
   pluginDir,
-  /** 插件目录名称。 */
+  /** 插件运行时目录名称。 */
   pluginName,
   /** 插件 package.json 内容。 */
   pkg,
@@ -40,7 +43,14 @@ export const dir = {
     const runtimeDir = process.env.KARIN_DRAWIMAGES_RUNTIME_DIR?.trim()
     if (runtimeDir) return path.resolve(runtimeDir)
 
-    return path.join(karinPathBase, pluginName)
+    const runtimePath = path.join(karinPathBase, pluginName)
+    const legacyRuntimePath = path.join(karinPathBase, legacyPluginName)
+
+    if (pluginName !== legacyPluginName && !fs.existsSync(runtimePath) && fs.existsSync(legacyRuntimePath)) {
+      return legacyRuntimePath
+    }
+
+    return runtimePath
   },
   /** 插件运行时配置目录。 */
   get ConfigDir () {
