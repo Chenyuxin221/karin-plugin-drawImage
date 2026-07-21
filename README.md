@@ -57,7 +57,7 @@ Chat Completions 模式只发送模型、提示词和输入图片，不发送 `s
 
 运行时实际使用的配置文件通常在：
 
-- `@karinjs/karin-plugin-drawimages/config/config.yaml`
+- `@karinjs/karin-plugin-drawImages/config/config.yaml`
 
 也可以直接通过 Karin Web 配置面板修改。
 
@@ -291,7 +291,7 @@ Web 配置面板支持：
 
 优先检查：
 
-- `@karinjs/karin-plugin-drawimages/config/config.yaml`
+- `@karinjs/karin-plugin-drawImages/config/config.yaml`
 - 当前启用的是不是正确的配置档
 - 当前配置档是否留空并正确继承了全局 `apiKey`
 

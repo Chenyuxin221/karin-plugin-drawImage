@@ -8,9 +8,9 @@ const pluginDir = fileURLToPath(new URL('../', import.meta.url))
 /** 插件 package.json 内容。 */
 const pkg = requireFileSync(path.join(pluginDir, 'package.json'))
 /** 插件运行时目录名称。 */
-const pluginName = pkg.name
-/** 历史运行时目录名称，用于兼容 1.0.0 前的大小写目录。 */
-const legacyPluginName = 'karin-plugin-drawImages'
+const pluginName = 'karin-plugin-drawImages'
+/** npm 包名目录，用于兼容 1.0.1 的小写运行时目录。 */
+const packagePluginName = pkg.name
 
 /**
  * 插件目录信息。
@@ -44,10 +44,10 @@ export const dir = {
     if (runtimeDir) return path.resolve(runtimeDir)
 
     const runtimePath = path.join(karinPathBase, pluginName)
-    const legacyRuntimePath = path.join(karinPathBase, legacyPluginName)
+    const packageRuntimePath = path.join(karinPathBase, packagePluginName)
 
-    if (pluginName !== legacyPluginName && !fs.existsSync(runtimePath) && fs.existsSync(legacyRuntimePath)) {
-      return legacyRuntimePath
+    if (pluginName !== packagePluginName && !fs.existsSync(runtimePath) && fs.existsSync(packageRuntimePath)) {
+      return packageRuntimePath
     }
 
     return runtimePath

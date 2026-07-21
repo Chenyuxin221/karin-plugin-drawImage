@@ -10,7 +10,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/Chenyuxin221/karin-plugin-drawImage.git"
+    "url": "git+https://github.com/Chenyuxin221/karin-plugin-drawImage.git"
   },
   "keywords": [
     "karin",

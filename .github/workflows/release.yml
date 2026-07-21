@@ -1,9 +1,10 @@
-name: Release and Publish # 发布和发布的工作流程名称
+name: publish
 on:
   push:
     branches:
       - main # 仅当推送到 main 分支时触发
 permissions:
+  id-token: write # 设置身份令牌的权限为写
   contents: write # 设置内容的权限为写
   pull-requests: write # 设置拉取请求的权限为写
   issues: write # 设置问题的权限为写
@@ -44,6 +45,9 @@ jobs:
           # 设置 npm 注册表 URL
           registry-url: https://registry.npmjs.org
         if: ${{ steps.release.outputs.release_created }}
+      # 安装 npm 11+，npm Trusted Publishing 需要 npm >= 11.5.1
+      - run: npm install -g npm@latest
+        if: ${{ steps.release.outputs.release_created }}
       # 安装依赖
       - run: npm install
         if: ${{ steps.release.outputs.release_created }}
@@ -52,8 +56,6 @@ jobs:
       # 编译
       - run: npm run build
         if: ${{ steps.release.outputs.release_created }}
-      # 发布带npm
+      # 发布到 npm；Trusted Publishing 通过 GitHub OIDC 授权，不传 NODE_AUTH_TOKEN
       - run: npm run pub
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         if: ${{ steps.release.outputs.release_created }}
