@@ -52,7 +52,7 @@ interface DrawTaskState {
   running: boolean
 }
 
-const DRAW_TASK_STATE_KEY = Symbol.for('karin-plugin-drawImages.taskState')
+const DRAW_TASK_STATE_KEY = Symbol.for('karin-plugin-drawimages.taskState')
 
 /**
  * 获取跨热重载共享的绘图任务状态。
@@ -162,7 +162,7 @@ async function getDrawInputImages (e: DrawEvent): Promise<string[]> {
       const message = await e.bot.getMsg(e.contact, replyId)
       images.push(...getImageFilesFromElements(message.elements))
     } catch (error) {
-      logger.warn('[karin-plugin-drawImages] 获取引用消息图片失败', error)
+      logger.warn('[karin-plugin-drawimages] 获取引用消息图片失败', error)
     }
   }
 
@@ -192,7 +192,7 @@ export async function handleDrawMessage (
   try {
     config = runtime.transformConfig(runtime.getConfig())
   } catch (error) {
-    logger.error('[karin-plugin-drawImages] 读取绘图配置失败', error)
+    logger.error('[karin-plugin-drawimages] 读取绘图配置失败', error)
     await e.reply(`读取绘图配置失败: ${error instanceof Error ? error.message : String(error)}`)
     return true
   }
@@ -222,7 +222,7 @@ export async function handleDrawMessage (
     const generatedImages = await runtime.generate(prompt, inputImages, config)
     await e.reply(generatedImages.map(runtime.mapOutput))
   } catch (error) {
-    logger.error('[karin-plugin-drawImages] 绘图失败', error)
+    logger.error('[karin-plugin-drawimages] 绘图失败', error)
     await e.reply(`绘图失败: ${error instanceof Error ? error.message : String(error)}`)
   } finally {
     if (config.taskLockEnabled) {

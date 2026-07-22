@@ -72,6 +72,6 @@ jobs:
       # 编译
       - run: npm run build
         if: ${{ steps.npm_package.outputs.should_publish == 'true' }}
-      # 发布到 npm；Trusted Publishing 通过 GitHub OIDC 授权，不传 NODE_AUTH_TOKEN
+      # 发布到 npm；Trusted Publishing 通过 GitHub OIDC 授权
       - run: npm run pub
         if: ${{ steps.npm_package.outputs.should_publish == 'true' }}

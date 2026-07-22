@@ -18,11 +18,11 @@ const isLocalDevelopment = process.env.NODE_ENV === 'development' &&
 
 export default defineConfig({
   info: {
-    id: 'karin-plugin-drawImages',
+    id: dir.pluginName,
     name: 'AI 绘图',
     author: {
       name: 'huayunduan',
-      home: 'https://github.com/Chenyuxin221/karin-plugin-drawImages',
+      home: 'https://github.com/Chenyuxin221/karin-plugin-drawimages',
       avatar: 'https://avatars.githubusercontent.com/chenyuxin221',
     },
     icon: {

@@ -588,7 +588,7 @@ function Workspace ({ initialSettings }: { initialSettings: DrawSettings }) {
         <ConfigEditor settings={settings} scope={scope} onChange={update} onInherit={inherit} />
 
         <footer className='content-footer'>
-          <span>karin-plugin-drawImages</span>
+          <span>karin-plugin-drawimages</span>
           <span>配置保存后立即生效</span>
         </footer>
       </main>

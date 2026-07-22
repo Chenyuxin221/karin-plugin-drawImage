@@ -23,7 +23,7 @@ function sendWebIndex (_req: Request, res: Response): void {
     res.setHeader('Cache-Control', 'no-cache')
     res.type('html').send(fs.readFileSync(webIndexPath, 'utf8'))
   } catch (error) {
-    logger.error('[karin-plugin-drawImages] 读取 Web UI 入口失败', error)
+    logger.error('[karin-plugin-drawimages] 读取 Web UI 入口失败', error)
     createServerErrorResponse(res, '加载 AI 绘图配置页面失败')
   }
 }

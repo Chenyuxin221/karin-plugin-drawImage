@@ -699,8 +699,8 @@ export async function generateImages (prompt: string, images: string[], config: 
   ].join(' ')
   const sanitizedPayload = JSON.stringify(sanitizePayloadForLog(payload))
 
-  logger.debug(`[karin-plugin-drawImages] 请求开始 ${requestSummary}`)
-  logger.debug(`[karin-plugin-drawImages] 请求体 id=${requestId} payload=${sanitizedPayload}`)
+  logger.debug(`[karin-plugin-drawimages] 请求开始 ${requestSummary}`)
+  logger.debug(`[karin-plugin-drawimages] 请求体 id=${requestId} payload=${sanitizedPayload}`)
 
   try {
     const response = target.stream
@@ -731,14 +731,14 @@ export async function generateImages (prompt: string, images: string[], config: 
     const output = extractOutputImages(json)
     if (output.length === 0) {
       // 只记录响应摘要，避免日志里泄露完整响应或过长内容。
-      logger.warn(`[karin-plugin-drawImages] 接口返回成功但未解析到图片，${summarizeImageApiResponse(response)}`)
+      logger.warn(`[karin-plugin-drawimages] 接口返回成功但未解析到图片，${summarizeImageApiResponse(response)}`)
       throw new Error('接口返回成功，但没有拿到图片结果')
     }
 
-    logger.debug(`[karin-plugin-drawImages] 请求完成 id=${requestId} status=${response.status} output=${output.length} duration=${Date.now() - startedAt}ms`)
+    logger.debug(`[karin-plugin-drawimages] 请求完成 id=${requestId} status=${response.status} output=${output.length} duration=${Date.now() - startedAt}ms`)
     return output
   } catch (error) {
-    logger.debug(`[karin-plugin-drawImages] 请求失败 ${requestSummary} duration=${Date.now() - startedAt}ms payload=${sanitizedPayload}`)
+    logger.debug(`[karin-plugin-drawimages] 请求失败 ${requestSummary} duration=${Date.now() - startedAt}ms payload=${sanitizedPayload}`)
     throw error
   }
 }

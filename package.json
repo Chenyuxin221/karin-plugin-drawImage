@@ -1,6 +1,6 @@
 {
   "name": "karin-plugin-drawimages",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "author": "huayunduan",
   "type": "module",
   "description": "Karin AI drawing plugin for #draw, supporting text-to-image and image-to-image with Images API, Chat Completions, and Responses backends",
@@ -46,6 +46,7 @@
     "eslint": "^9.7.0",
     "lucide-react": "^0.545.0",
     "neostandard": "^0.11.9",
+    "node-karin": "^1.16.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "tsup": "^8.5.0",

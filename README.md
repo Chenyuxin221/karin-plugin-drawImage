@@ -1,4 +1,4 @@
-# karin-plugin-drawImages
+# karin-plugin-drawimages
 
 [![npm version](https://img.shields.io/npm/v/karin-plugin-drawimages?style=flat-square&color=0f766e)](https://www.npmjs.com/package/karin-plugin-drawimages)
 [![license](https://img.shields.io/badge/license-Apache--2.0-blue?style=flat-square)](./LICENSE)

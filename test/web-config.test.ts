@@ -4,7 +4,7 @@ import assert from 'node:assert/strict'
 import webConfig from '../web.config'
 
 test('web config opens the dedicated drawImages control surface', () => {
-  assert.equal(webConfig.info.id, 'karin-plugin-drawImages')
+  assert.equal(webConfig.info.id, 'karin-plugin-drawimages')
   assert.equal(webConfig.info.name, 'AI 绘图')
   assert.equal(typeof webConfig.page, 'object')
   assert.equal('url' in webConfig.page ? webConfig.page.url : undefined, '/drawimages/config')
