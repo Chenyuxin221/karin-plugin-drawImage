@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main # 仅当推送到 main 分支时触发
+  workflow_dispatch:
 permissions:
   id-token: write # 设置身份令牌的权限为写
   contents: write # 设置内容的权限为写
@@ -28,15 +29,8 @@ jobs:
     # 设置工作流程运行环境为 Ubuntu
     runs-on: ubuntu-latest
     steps:
-      # 使用 release-please-action@v5 动作
-      - uses: googleapis/release-please-action@v5
-        id: release
-        with:
-          # 设置发布类型为 Node.js
-          release-type: node
       # 检出代码
       - uses: actions/checkout@v4
-        if: ${{ steps.release.outputs.release_created }}
       # 设置 Node.js 环境
       - uses: actions/setup-node@v4
         with:
@@ -44,18 +38,40 @@ jobs:
           node-version: 22
           # 设置 npm 注册表 URL
           registry-url: https://registry.npmjs.org
-        if: ${{ steps.release.outputs.release_created }}
+      # 检查当前 package.json 版本是否已经发布到 npm，避免重复发布
+      - name: Check npm package version
+        id: npm_package
+        shell: bash
+        run: |
+          package_name="$(node -p "require('./package.json').name")"
+          package_version="$(node -p "require('./package.json').version")"
+          echo "name=${package_name}" >> "$GITHUB_OUTPUT"
+          echo "version=${package_version}" >> "$GITHUB_OUTPUT"
+          if npm view "${package_name}@${package_version}" version >/dev/null 2>&1; then
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+            echo "${package_name}@${package_version} is already published"
+          else
+            echo "should_publish=true" >> "$GITHUB_OUTPUT"
+            echo "${package_name}@${package_version} is not published yet"
+          fi
+      # 使用 release-please-action@v5 维护发布 PR；GitHub Release 由仓库权限问题暂时跳过
+      - uses: googleapis/release-please-action@v5
+        id: release
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          skip-github-release: true
       # 安装 npm 11+，npm Trusted Publishing 需要 npm >= 11.5.1
       - run: npm install -g npm@latest
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.npm_package.outputs.should_publish == 'true' }}
       # 安装依赖
       - run: npm install
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.npm_package.outputs.should_publish == 'true' }}
       - run: npm install --no-save node-karin@^1.16.3
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.npm_package.outputs.should_publish == 'true' }}
       # 编译
       - run: npm run build
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.npm_package.outputs.should_publish == 'true' }}
       # 发布到 npm；Trusted Publishing 通过 GitHub OIDC 授权，不传 NODE_AUTH_TOKEN
       - run: npm run pub
-        if: ${{ steps.release.outputs.release_created }}
+        if: ${{ steps.npm_package.outputs.should_publish == 'true' }}
