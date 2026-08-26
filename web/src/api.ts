@@ -1,4 +1,4 @@
-import type { ApiResponse, DrawSettings } from './types'
+import type { ApiResponse, DrawSettings, PromptInput, PromptRecord } from './types'
 
 const tokenKeys = {
   userId: 'userId',
@@ -81,5 +81,29 @@ export function saveSettings (settings: DrawSettings): Promise<DrawSettings> {
       global: settings.global,
       profiles: settings.profiles,
     }),
+  })
+}
+
+export function getPrompts (): Promise<PromptRecord[]> {
+  return request('/drawimages/api/prompts')
+}
+
+export function createPrompt (input: PromptInput): Promise<PromptRecord> {
+  return request('/drawimages/api/prompts', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export function updatePrompt (id: string, input: PromptInput): Promise<PromptRecord> {
+  return request(`/drawimages/api/prompts/${encodeURIComponent(id)}`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })
+}
+
+export function deletePrompt (id: string): Promise<PromptRecord> {
+  return request(`/drawimages/api/prompts/${encodeURIComponent(id)}/delete`, {
+    method: 'POST',
   })
 }

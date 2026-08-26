@@ -3,6 +3,7 @@ import { karin, logger, segment, type Contact, type Elements, type SendMessage }
 import { dir } from '@/dir'
 import { getDrawConfig } from '@/utils/config'
 import { resolveApiImageInputs } from '@/utils/image'
+import { resolvePromptInput, type ResolvedPrompt } from '@/utils/prompts'
 import {
   DRAW_COMMAND_REG,
   DRAW_USAGE_TEXT,
@@ -18,6 +19,8 @@ interface DrawEvent {
   msg: string
   /** 消息中直接携带的图片列表 */
   image: string[]
+  /** 当前消息元素，用于读取附带文件等消息段 */
+  elements?: readonly Elements[]
   /** 被引用消息的 ID */
   replyId?: string
   /** 当前事件来源，用于读取引用消息 */
@@ -31,6 +34,8 @@ interface DrawEvent {
 }
 
 interface DrawDeps {
+  /** 解析普通提示词或保存提示词 ID */
+  resolvePrompt: (input: string) => ResolvedPrompt
   /** 获取当前绘图配置 */
   getConfig: () => DrawConfig
   /** 将事件图片转换为上游可读取的图片输入 */
@@ -72,6 +77,7 @@ function getGlobalTaskState (): DrawTaskState {
 }
 
 const defaultDeps: DrawDeps = {
+  resolvePrompt: (input) => resolvePromptInput(input),
   getConfig: () => getDrawConfig(),
   resolveImages: async (images, config) => {
     return resolveApiImageInputs(images, {
@@ -181,8 +187,22 @@ export async function handleDrawMessage (
   deps: Partial<DrawDeps> = {}
 ): Promise<true> {
   const runtime = { ...defaultDeps, ...deps }
-  const prompt = parseDrawPrompt(e.msg)
+  const rawPrompt = parseDrawPrompt(e.msg)
 
+  if (!rawPrompt) {
+    await e.reply(DRAW_USAGE_TEXT)
+    return true
+  }
+
+  let resolvedPrompt: ResolvedPrompt
+  try {
+    resolvedPrompt = runtime.resolvePrompt(rawPrompt)
+  } catch (error) {
+    await e.reply(`读取提示词失败: ${error instanceof Error ? error.message : String(error)}`)
+    return true
+  }
+
+  const prompt = resolvedPrompt.text
   if (!prompt) {
     await e.reply(DRAW_USAGE_TEXT)
     return true
@@ -208,6 +228,15 @@ export async function handleDrawMessage (
     return true
   }
 
+  let inputImages: string[] | undefined
+  if (resolvedPrompt.type === 1) {
+    inputImages = await getDrawInputImages(e)
+    if (inputImages.length === 0) {
+      await e.reply(`提示词 ${resolvedPrompt.id ?? ''} 需要附带图片或引用图片`)
+      return true
+    }
+  }
+
   // 任务锁只负责限制同时请求数量，不按用户或固定秒数计算冷却。
   if (config.taskLockEnabled && runtime.taskState.running) {
     await e.reply('已有绘图任务正在执行，请等待上一张图片完成后再试')
@@ -218,8 +247,9 @@ export async function handleDrawMessage (
     runtime.taskState.running = true
   }
   try {
-    const inputImages = await runtime.resolveImages(await getDrawInputImages(e), config)
-    const generatedImages = await runtime.generate(prompt, inputImages, config)
+    const sourceImages = inputImages ?? await getDrawInputImages(e)
+    const resolvedImages = await runtime.resolveImages(sourceImages, config)
+    const generatedImages = await runtime.generate(prompt, resolvedImages, config)
     await e.reply(generatedImages.map(runtime.mapOutput))
   } catch (error) {
     logger.error('[karin-plugin-drawimages] 绘图失败', error)

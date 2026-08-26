@@ -5,6 +5,20 @@ export type ScopeId = 'global' | ProfileId
 export type ApiMode = 'images' | 'chatCompletions' | 'responses' | 'custom'
 export type ImageDetail = 'auto' | 'low' | 'high' | 'original'
 export type ImageUploadMode = 'default' | 'base64' | 'custom'
+export type PromptType = 0 | 1
+
+export interface PromptRecord {
+  id: string
+  type: PromptType
+  name: string
+  text: string
+}
+
+export interface PromptInput {
+  type: PromptType
+  name: string
+  text: string
+}
 
 export interface ConfigSource {
   id?: string

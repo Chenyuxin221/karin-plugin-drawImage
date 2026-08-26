@@ -1,9 +1,9 @@
 {
   "name": "karin-plugin-drawimages",
-  "version": "1.0.4",
+  "version": "1.0.7",
   "author": "huayunduan",
   "type": "module",
-  "description": "Karin AI drawing plugin for #draw, supporting text-to-image and image-to-image with Images API, Chat Completions, and Responses backends",
+  "description": "ai绘图插件，使用支持chat和response路由的第三方api, 支持文生图，图生图",
   "homepage": "https://github.com/Chenyuxin221/karin-plugin-drawImage",
   "bugs": {
     "url": "https://github.com/Chenyuxin221/karin-plugin-drawImage/issues"

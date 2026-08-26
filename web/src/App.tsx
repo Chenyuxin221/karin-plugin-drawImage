@@ -24,13 +24,8 @@ import {
 } from 'react'
 
 import { getSettings, saveSettings } from './api'
-import {
-  SegmentedField,
-  SelectField,
-  SizeField,
-  SwitchField,
-  TextField,
-} from './components/Fields'
+import { SegmentedField, SelectField, SizeField, SwitchField, TextField } from './components/Fields'
+import { PromptLibrary } from './components/PromptLibrary'
 import {
   apiModes,
   backgroundOptions,
@@ -522,7 +517,7 @@ function Workspace ({ initialSettings }: { initialSettings: DrawSettings }) {
           <div className='page-heading__copy'>
             <p className='eyebrow'>DRAW IMAGES</p>
             <h1>AI 绘图配置</h1>
-            <p className='page-description'>管理上游接口、配置档与图像生成参数</p>
+            <p className='page-description'>管理上游接口、配置档、图像生成参数与提示词库</p>
           </div>
           <div className='page-heading__actions'>
             {dirty && <span className='dirty-state'><i />有未保存更改</span>}
@@ -586,10 +581,11 @@ function Workspace ({ initialSettings }: { initialSettings: DrawSettings }) {
         )}
 
         <ConfigEditor settings={settings} scope={scope} onChange={update} onInherit={inherit} />
+        <PromptLibrary onNotice={(next) => setNotice(next)} />
 
         <footer className='content-footer'>
           <span>karin-plugin-drawimages</span>
-          <span>配置保存后立即生效</span>
+          <span>配置和提示词保存后立即生效</span>
         </footer>
       </main>
 

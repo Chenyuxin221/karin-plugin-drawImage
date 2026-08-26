@@ -31,13 +31,13 @@ export default defineConfig({
       color: '#0f766e',
     },
     version: dir.version,
-    description: 'OpenAI Images、Chat Completions 与 Responses 绘图配置',
+    description: '绘图配置与可复用提示词库管理',
   },
   page: {
     url: isLocalDevelopment
       ? 'http://localhost:5177/drawimages/config'
       : '/drawimages/config',
-    title: 'AI 绘图配置',
-    description: '使用 drawImages 自带的配置工作台',
+    title: 'AI 绘图工作台',
+    description: '管理绘图配置与提示词库',
   },
 })

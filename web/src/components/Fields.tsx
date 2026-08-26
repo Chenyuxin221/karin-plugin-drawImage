@@ -145,6 +145,39 @@ export function TextField ({
   )
 }
 
+export function TextAreaField ({
+  label,
+  help,
+  value,
+  onChange,
+  placeholder,
+  maxLength,
+  rows = 10,
+}: {
+  label: string
+  help?: string
+  value: string
+  onChange: (value: string) => void
+  placeholder?: string
+  maxLength?: number
+  rows?: number
+}) {
+  return (
+    <FieldFrame label={label} help={help}>
+      {(id) => (
+        <textarea
+          id={id}
+          value={value}
+          rows={rows}
+          maxLength={maxLength}
+          placeholder={placeholder}
+          onChange={(event) => onChange(event.target.value)}
+        />
+      )}
+    </FieldFrame>
+  )
+}
+
 export function SelectField ({
   label,
   help,

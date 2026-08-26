@@ -382,3 +382,64 @@ test('handleDrawMessage allows concurrent draw tasks when task lock is disabled'
     ['https://cdn.example.com/output.png'],
   ])
 })
+
+test('handleDrawMessage requires an image for type 1 saved prompts', async () => {
+  const replies: unknown[] = []
+  let generateCalled = false
+
+  await handleDrawMessage({
+    msg: '#draw p001',
+    image: [],
+    reply: async (message: unknown) => {
+      replies.push(message)
+    },
+  }, {
+    getConfig: () => createConfig(),
+    resolvePrompt: () => ({ text: '保存的图生图提示词', type: 1, id: 'p001' }),
+    generate: async () => {
+      generateCalled = true
+      return []
+    },
+  })
+
+  assert.equal(generateCalled, false)
+  assert.match(String(replies[0]), /需要附带图片或引用图片/)
+})
+
+test('handleDrawMessage uses saved prompt text and quoted images', async () => {
+  const replies: unknown[] = []
+  let generateArgs: { prompt: string, images: string[] } | undefined
+
+  await handleDrawMessage({
+    msg: '#draw p001 追加描述',
+    image: [],
+    replyId: 'image-message',
+    contact: {
+      scene: 'group',
+      peer: '10000',
+      name: 'test-group',
+    },
+    bot: {
+      getMsg: async () => ({
+        elements: [{ type: 'image', file: 'https://cdn.example.com/input.png' }],
+      }),
+    },
+    reply: async (message: unknown) => {
+      replies.push(message)
+    },
+  }, {
+    getConfig: () => createConfig(),
+    resolvePrompt: () => ({ text: '保存的提示词\n追加描述', type: 1, id: 'p001' }),
+    resolveImages: async images => images.map(image => `resolved:${image}`),
+    generate: async (prompt, images) => {
+      generateArgs = { prompt, images }
+      return ['https://cdn.example.com/output.png']
+    },
+  })
+
+  assert.deepEqual(generateArgs, {
+    prompt: '保存的提示词\n追加描述',
+    images: ['resolved:https://cdn.example.com/input.png'],
+  })
+  assert.deepEqual(replies[0], ['https://cdn.example.com/output.png'])
+})

@@ -45,6 +45,7 @@ export const TRANSPARENT_DRAW_COMMAND_REG = /^#tpdraw(?:\s+([\s\S]*))?$/i
 export const DRAW_USAGE_TEXT = [
   '用法：',
   '#draw 提示词',
+  '#draw p001（使用保存的提示词）',
   '#tpdraw 提示词（临时透明背景）',
   '#draw 提示词 + 附带/引用图片（图生图）',
 ].join('\n')

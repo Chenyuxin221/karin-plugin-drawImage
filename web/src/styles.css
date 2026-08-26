@@ -440,7 +440,8 @@ select:disabled {
 }
 
 .field input,
-.field select {
+.field select,
+.field textarea {
   width: 100%;
   height: 40px;
   min-width: 0;
@@ -452,6 +453,13 @@ select:disabled {
   font-size: 13px;
 }
 
+.field textarea {
+  height: auto;
+  min-height: 220px;
+  resize: vertical;
+  line-height: 1.6;
+}
+
 .field select {
   padding-right: 30px;
 }
@@ -461,19 +469,22 @@ select:disabled {
 }
 
 .field input:hover:not(:disabled),
-.field select:hover:not(:disabled) {
+.field select:hover:not(:disabled),
+.field textarea:hover:not(:disabled) {
   border-color: color-mix(in srgb, var(--primary) 55%, var(--border-strong));
 }
 
 .field--inherited input,
-.field--inherited select {
+.field--inherited select,
+.field--inherited textarea {
   border-style: dashed;
   background: var(--surface-muted);
   color: var(--text-muted);
 }
 
 .field--disabled input,
-.field--disabled select {
+.field--disabled select,
+.field--disabled textarea {
   border-color: var(--border);
   background: var(--surface-muted);
   color: var(--text-faint);
@@ -633,6 +644,315 @@ select:disabled {
 
 .validation-banner small {
   margin-left: auto;
+}
+
+.prompt-library__body {
+  padding: 18px 20px 4px;
+}
+
+.prompt-toolbar {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.prompt-toolbar__meta {
+  display: inline-flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.prompt-toolbar__meta strong {
+  color: var(--text);
+  font-size: 18px;
+  line-height: 1;
+}
+
+.prompt-filter-count {
+  margin-left: 5px;
+  color: var(--primary);
+  font-size: 11px;
+}
+
+.prompt-toolbar__actions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.prompt-search {
+  display: flex;
+  width: min(300px, 36vw);
+  min-width: 150px;
+  height: 38px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 11px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--surface-strong);
+  color: var(--text-faint);
+}
+
+.prompt-search:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 18%, transparent);
+}
+
+.prompt-search input {
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+}
+
+.prompt-search input::placeholder {
+  color: var(--text-faint);
+}
+
+.prompt-list {
+  border-top: 1px solid var(--border);
+}
+
+.prompt-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
+  min-width: 0;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.prompt-row__main {
+  min-width: 0;
+}
+
+.prompt-row__meta {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.prompt-row__meta code {
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  font-weight: 700;
+}
+
+.prompt-type {
+  display: inline-flex;
+  max-width: 100%;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 7px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.prompt-type--0 {
+  background: var(--surface-muted);
+  color: var(--text-muted);
+}
+
+.prompt-type--1 {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.prompt-row h3 {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.prompt-row p {
+  display: -webkit-box;
+  max-width: 920px;
+  margin: 6px 0 0;
+  overflow: hidden;
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.prompt-row__actions {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  padding-top: 26px;
+}
+
+.icon-button--danger:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--danger) 45%, var(--border));
+  color: var(--danger);
+}
+
+.prompt-state {
+  display: flex;
+  min-height: 128px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.prompt-state--error {
+  justify-content: flex-start;
+  color: var(--danger);
+}
+
+.prompt-state--error span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.prompt-state--error .button {
+  margin-left: auto;
+  flex: 0 0 auto;
+}
+
+.prompt-state--empty {
+  flex-direction: column;
+  gap: 6px;
+  text-align: center;
+}
+
+.prompt-state--empty svg {
+  margin-bottom: 3px;
+  color: var(--text-faint);
+}
+
+.prompt-state--empty strong {
+  color: var(--text);
+  font-size: 13px;
+}
+
+.prompt-state--empty span {
+  color: var(--text-faint);
+  font-size: 11px;
+}
+
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(16, 19, 18, 0.52);
+}
+
+.prompt-dialog {
+  display: flex;
+  width: min(760px, 100%);
+  max-height: min(800px, calc(100vh - 40px));
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.prompt-dialog__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface-strong);
+}
+
+.prompt-dialog__header .eyebrow {
+  margin-bottom: 6px;
+}
+
+.prompt-dialog__header h2 {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.3;
+}
+
+.prompt-dialog form {
+  display: flex;
+  min-height: 0;
+  flex-direction: column;
+}
+
+.prompt-dialog__body {
+  min-height: 0;
+  overflow: auto;
+  padding: 22px;
+}
+
+.prompt-form-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 20px 24px;
+}
+
+.prompt-dialog .segmented {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.prompt-dialog .field textarea {
+  min-height: 260px;
+}
+
+.prompt-length {
+  margin-top: 6px;
+  color: var(--text-faint);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 10px;
+  text-align: right;
+}
+
+.prompt-dialog__footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 22px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-strong);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .content-footer {
@@ -820,6 +1140,59 @@ select:disabled {
   .field-grid {
     gap: 18px;
     padding: 18px 16px 20px;
+  }
+
+  .prompt-library__body {
+    padding: 16px 16px 2px;
+  }
+
+  .prompt-toolbar {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .prompt-toolbar__actions {
+    justify-content: stretch;
+    flex-wrap: wrap;
+  }
+
+  .prompt-search {
+    width: auto;
+    flex: 1 1 180px;
+  }
+
+  .prompt-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .prompt-row__actions {
+    justify-content: flex-end;
+    padding-top: 0;
+  }
+
+  .prompt-state--error {
+    flex-wrap: wrap;
+  }
+
+  .prompt-state--error .button {
+    margin-left: 28px;
+  }
+
+  .prompt-form-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .prompt-dialog__header,
+  .prompt-dialog__body {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .prompt-dialog__footer {
+    padding-right: 16px;
+    padding-left: 16px;
   }
 
   .segmented {

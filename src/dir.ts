@@ -51,6 +51,10 @@ export const dir = {
   get dataDir () {
     return path.join(this.karinPath, 'data')
   },
+  /** 提示词库文件。 */
+  get promptFile () {
+    return path.join(this.dataDir, 'prompts.json')
+  },
   /** 插件运行时资源目录。 */
   get defResourcesDir () {
     return path.join(this.karinPath, 'resources')
