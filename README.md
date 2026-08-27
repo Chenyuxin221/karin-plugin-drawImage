@@ -20,7 +20,7 @@ Karin 的 AI 绘图插件，支持文生图、图生图、Images API、Responses
 在 Karin 根目录执行：
 
 ```bash
-pnpm add karin-plugin-drawimages
+pnpm add karin-plugin-drawimages@latest
 pnpm exec ki rs
 ```
 
